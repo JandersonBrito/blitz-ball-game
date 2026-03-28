@@ -55,8 +55,8 @@ class BallzFlameGame extends FlameGame {
     blocks.clear();
     final isBoss = gameState.isBossStage;
     final newBlocks = isBoss
-        ? initBossStage(gameState.level)
-        : initBlocks(gameState.level);
+        ? initBossStage(gameState.stage)
+        : initBlocks(gameState.stage);
     for (final b in newBlocks) b.position.y += topOffset;
     blocks.addAll(newBlocks);
   }
@@ -131,7 +131,7 @@ class BallzFlameGame extends FlameGame {
       else gameState.repeatWave();
       // add new row at top
       final dom = allElements[Random().nextInt(allElements.length)];
-      final newRow = generateRow(gameState.level, dom, 0);
+      final newRow = generateRow(gameState.stage, dom, 0);
       for (final b in newRow) b.position.y += topOffset;
       blocks.addAll(newRow);
       phase = GamePhase.aim;
@@ -187,8 +187,8 @@ class BallzFlameGame extends FlameGame {
         ball.position.x = canvasW - ballRadius - 1;
         ball.velocity.x = -ball.velocity.x.abs();
       }
-      if (ball.position.y - ballRadius <= 1) {
-        ball.position.y = ballRadius + 1;
+      if (ball.position.y - ballRadius <= topOffset) {
+        ball.position.y = topOffset + ballRadius;
         ball.velocity.y = ball.velocity.y.abs();
       }
 
@@ -316,6 +316,9 @@ class BallzFlameGame extends FlameGame {
     shoot();
   }
 
+  void pauseGame() => paused = true;
+  void resumeGame() => paused = false;
+
   @override
   void render(Canvas canvas) {
     super.render(canvas);
@@ -332,13 +335,13 @@ class BallzFlameGame extends FlameGame {
       Rect.fromLTWH(0, 0, size.x, size.y),
       Paint()..color = const Color(0xFF0a0a14),
     );
-    // grid
+    // grid (começa abaixo do HUD)
     final gridPaint = Paint()..color = const Color(0x0AFFFFFF)..strokeWidth = 0.5;
     for (int c = 0; c <= cols; c++) {
-      canvas.drawLine(Offset(c * blockSize + 1, 0), Offset(c * blockSize + 1, floorY), gridPaint);
+      canvas.drawLine(Offset(c * blockSize + 1, topOffset), Offset(c * blockSize + 1, floorY), gridPaint);
     }
     for (int r = 0; r <= rows; r++) {
-      canvas.drawLine(Offset(1, r * blockSize.toDouble()), Offset(size.x - 1, r * blockSize.toDouble()), gridPaint);
+      canvas.drawLine(Offset(1, topOffset + r * blockSize), Offset(size.x - 1, topOffset + r * blockSize), gridPaint);
     }
     // floor line
     canvas.drawLine(
@@ -373,7 +376,7 @@ class BallzFlameGame extends FlameGame {
         bool hit = false;
         if (cx2 <= ballRadius + 1)           { cx2 = ballRadius + 1;           cdx =  cdx.abs(); hit = true; }
         if (cx2 >= size.x - ballRadius - 1)  { cx2 = size.x - ballRadius - 1; cdx = -cdx.abs(); hit = true; }
-        if (cy2 <= ballRadius)               { cy2 = ballRadius;               cdy =  cdy.abs(); hit = true; }
+        if (cy2 <= topOffset + ballRadius)    { cy2 = topOffset + ballRadius;   cdy =  cdy.abs(); hit = true; }
         if (cy2 >= floorY) break;
         dashPath.lineTo(cx2, cy2);
         if (hit) { drawSeg(cx2, cy2, cdx, cdy, bounceIdx + 1); return; }

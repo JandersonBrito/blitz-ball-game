@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../game/managers/game_state.dart';
+import '../models/app_settings.dart';
 import '../models/element.dart';
 import 'upgrade_screen.dart';
+import 'settings_screen.dart';
 
 class MenuOverlay extends StatefulWidget {
   final VoidCallback onStartWave;
@@ -15,6 +17,7 @@ class MenuOverlay extends StatefulWidget {
 
 class _MenuOverlayState extends State<MenuOverlay> {
   bool _showUpgrades = false;
+  bool _showSettings = false;
 
   @override
   Widget build(BuildContext context) {
@@ -22,30 +25,44 @@ class _MenuOverlayState extends State<MenuOverlay> {
     return Container(
       color: const Color(0xEE0A0A14),
       child: Center(
-        child: _showUpgrades
-            ? UpgradeScreen(onBack: () => setState(() => _showUpgrades = false))
-            : _buildMainMenu(state),
+        child: _showSettings
+            ? SettingsScreen(onBack: () => setState(() => _showSettings = false))
+            : _showUpgrades
+                ? UpgradeScreen(onBack: () => setState(() => _showUpgrades = false))
+                : _buildMainMenu(state, context),
       ),
     );
   }
 
-  Widget _buildMainMenu(GameState state) {
+  Widget _buildMainMenu(GameState state, BuildContext context) {
+    final l = context.watch<AppSettings>().l10n;
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Stage number
-          Text(state.isBossStage ? '👹 BOSS' : 'FASE',
-              style: const TextStyle(color: Colors.white38, fontSize: 11, letterSpacing: 2, fontFamily: 'monospace')),
+          Text(state.isBossStage ? '👹 ${l.boss}' : l.stage,
+              style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 11,
+                  letterSpacing: 2,
+                  fontFamily: 'monospace')),
           const SizedBox(height: 4),
           Text('${state.stage}',
               style: TextStyle(
-                color: state.isBossStage ? const Color(0xFFE24B4A) : Colors.white,
-                fontSize: 52, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+                  color: state.isBossStage
+                      ? const Color(0xFFE24B4A)
+                      : Colors.white,
+                  fontSize: 52,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'monospace')),
           if (state.isBossStage)
-            const Text('derrote o boss para avançar',
-                style: TextStyle(color: Color(0xFFE24B4A), fontSize: 11, fontFamily: 'monospace')),
+            Text(l.bossTip,
+                style: const TextStyle(
+                    color: Color(0xFFE24B4A),
+                    fontSize: 11,
+                    fontFamily: 'monospace')),
 
           const SizedBox(height: 16),
 
@@ -54,10 +71,11 @@ class _MenuOverlayState extends State<MenuOverlay> {
           const SizedBox(height: 4),
           Text(
             state.wavesInStage == 1
-                ? 'limpe todos os blocos para avançar'
-                : 'wave ${state.waveInStage} de ${state.wavesInStage}'
-                    '${state.waveInStage == state.wavesInStage ? " · limpe tudo para avançar" : ""}',
-            style: const TextStyle(color: Colors.white38, fontSize: 11, fontFamily: 'monospace'),
+                ? l.clearAll
+                : '${l.waveOf(state.waveInStage, state.wavesInStage)}'
+                    '${state.waveInStage == state.wavesInStage ? ' · ${l.clearLast}' : ''}',
+            style: const TextStyle(
+                color: Colors.white38, fontSize: 11, fontFamily: 'monospace'),
           ),
 
           const SizedBox(height: 20),
@@ -71,11 +89,23 @@ class _MenuOverlayState extends State<MenuOverlay> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('bolas: ${state.ballCount}', style: const TextStyle(color: Colors.white30, fontSize: 11, fontFamily: 'monospace')),
+              Text(l.balls(state.ballCount),
+                  style: const TextStyle(
+                      color: Colors.white30,
+                      fontSize: 11,
+                      fontFamily: 'monospace')),
               const SizedBox(width: 16),
-              Text('pts: ${state.score}', style: const TextStyle(color: Colors.white30, fontSize: 11, fontFamily: 'monospace')),
+              Text(l.pts(state.score),
+                  style: const TextStyle(
+                      color: Colors.white30,
+                      fontSize: 11,
+                      fontFamily: 'monospace')),
               const SizedBox(width: 16),
-              Text('⬤ ${state.gold}', style: const TextStyle(color: Color(0xFFEF9F27), fontSize: 11, fontFamily: 'monospace')),
+              Text('⬤ ${state.gold}',
+                  style: const TextStyle(
+                      color: Color(0xFFEF9F27),
+                      fontSize: 11,
+                      fontFamily: 'monospace')),
             ],
           ),
 
@@ -89,14 +119,20 @@ class _MenuOverlayState extends State<MenuOverlay> {
                 ElevatedButton(
                   onPressed: widget.onStartWave,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: state.isBossStage ? const Color(0xFF993C1D) : const Color(0xFF1D9E75),
+                    backgroundColor: state.isBossStage
+                        ? const Color(0xFF993C1D)
+                        : const Color(0xFF1D9E75),
                     foregroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 48),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   child: Text(
-                    state.isBossStage ? '👹 Enfrentar Boss' : '▶ Iniciar wave ${state.waveInStage}',
-                    style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                    state.isBossStage
+                        ? l.fightBoss
+                        : l.startWave(state.waveInStage),
+                    style: const TextStyle(
+                        fontFamily: 'monospace', fontWeight: FontWeight.bold),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -106,9 +142,26 @@ class _MenuOverlayState extends State<MenuOverlay> {
                     side: const BorderSide(color: Color(0xFFEF9F27)),
                     foregroundColor: const Color(0xFFEF9F27),
                     minimumSize: const Size(double.infinity, 48),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: const Text('⬤ Upgrades', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                  child: Text(l.upgradesBtn,
+                      style: const TextStyle(
+                          fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: () => setState(() => _showSettings = true),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF378ADD)),
+                    foregroundColor: const Color(0xFF378ADD),
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: Text(l.settingsBtn,
+                      style: const TextStyle(
+                          fontFamily: 'monospace', fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -135,7 +188,11 @@ class _WaveDots extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 3),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: done ? const Color(0xFF1D9E75) : active ? Colors.white : Colors.white24,
+            color: done
+                ? const Color(0xFF1D9E75)
+                : active
+                    ? Colors.white
+                    : Colors.white24,
             border: active ? Border.all(color: Colors.white, width: 2) : null,
           ),
         );
@@ -148,10 +205,15 @@ class _ElementSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<GameState>();
+    final l = context.watch<AppSettings>().l10n;
     return Column(
       children: [
-        const Text('ELEMENTO DA BOLA',
-            style: TextStyle(color: Colors.white30, fontSize: 10, letterSpacing: 1, fontFamily: 'monospace')),
+        Text(l.elementTitle,
+            style: const TextStyle(
+                color: Colors.white30,
+                fontSize: 10,
+                letterSpacing: 1,
+                fontFamily: 'monospace')),
         const SizedBox(height: 6),
         Wrap(
           spacing: 6,
@@ -160,22 +222,30 @@ class _ElementSelector extends StatelessWidget {
           children: ElementType.values.map((el) {
             final info = elementDataMap[el]!;
             final selected = state.ballElement == el;
+            final name = l.elemName(el);
             return GestureDetector(
-              onTap: () { state.ballElement = el; state.notifyListeners(); },
+              onTap: () {
+                state.ballElement = el;
+                state.notifyListeners();
+              },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: selected ? info.blockBg : Colors.transparent,
-                  border: Border.all(color: selected ? info.blockBorder : Colors.white24),
+                  border: Border.all(
+                      color: selected ? info.blockBorder : Colors.white24),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  '${info.icon} ${info.label}',
+                  '${info.icon} $name',
                   style: TextStyle(
                     color: selected ? info.textColor : Colors.white38,
-                    fontSize: 11, fontFamily: 'monospace',
-                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 11,
+                    fontFamily: 'monospace',
+                    fontWeight:
+                        selected ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
               ),
@@ -184,13 +254,11 @@ class _ElementSelector extends StatelessWidget {
         ),
         if (state.ballElement != ElementType.neutral) ...[
           const SizedBox(height: 4),
-          Builder(builder: (ctx) {
-            final el = state.ballElement;
-            final adv = el == ElementType.fire ? 'Vento' : el == ElementType.water ? 'Fogo' : 'Água';
-            final dis = el == ElementType.fire ? 'Água' : el == ElementType.water ? 'Vento' : 'Fogo';
-            return Text('✦ forte vs $adv · fraco vs $dis',
-                style: const TextStyle(color: Colors.white24, fontSize: 9, fontFamily: 'monospace'));
-          }),
+          Text(l.elemAdvantage(state.ballElement),
+              style: const TextStyle(
+                  color: Colors.white24,
+                  fontSize: 9,
+                  fontFamily: 'monospace')),
         ],
       ],
     );

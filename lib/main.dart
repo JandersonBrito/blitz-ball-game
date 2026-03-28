@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'services/settings_service.dart';
 import 'ui/game_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Force landscape or portrait — keep portrait for this game
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -13,25 +14,32 @@ void main() {
     statusBarColor: Colors.transparent,
     systemNavigationBarColor: Color(0xFF0a0a14),
   ));
-  runApp(const BallzApp());
+
+  final settings = await SettingsService.load();
+
+  runApp(BallzApp(settings: settings));
 }
 
 class BallzApp extends StatelessWidget {
-  const BallzApp({super.key});
+  final SettingsService settings;
+  const BallzApp({super.key, required this.settings});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Ballz',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF0a0a14),
-        colorScheme: ColorScheme.dark(
-          primary: const Color(0xFF1D9E75),
-          secondary: const Color(0xFFEF9F27),
+    return ChangeNotifierProvider.value(
+      value: settings,
+      child: MaterialApp(
+        title: 'Ballz',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData.dark().copyWith(
+          scaffoldBackgroundColor: const Color(0xFF0a0a14),
+          colorScheme: ColorScheme.dark(
+            primary: const Color(0xFF1D9E75),
+            secondary: const Color(0xFFEF9F27),
+          ),
         ),
+        home: const GameScreen(),
       ),
-      home: const GameScreen(),
     );
   }
 }
