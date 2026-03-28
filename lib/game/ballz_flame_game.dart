@@ -12,7 +12,7 @@ import '../models/element.dart';
 
 enum GamePhase { menu, aim, shooting, returning, gameOver }
 
-class BallzFlameGame extends FlameGame with PanDetector {
+class BallzFlameGame extends FlameGame {
   final GameState gameState;
 
   BallzFlameGame({required this.gameState});
@@ -307,16 +307,6 @@ class BallzFlameGame extends FlameGame with PanDetector {
     if (phase != GamePhase.aim) return;
     handlePointerPosition(pos);
     shoot();
-  }
-
-  @override
-  void onPanUpdate(DragUpdateInfo info) {
-    if (phase == GamePhase.aim) {
-      final pos = info.eventPosition.global;
-      double ang = atan2(pos.y - floorY, pos.x - originX);
-      ang = ang.clamp(-pi + 0.15, -0.15);
-      aimAngle = ang;
-    }
   }
 
   @override

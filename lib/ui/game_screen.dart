@@ -47,13 +47,15 @@ class _GameScreenState extends State<GameScreen> {
       value: _gameState,
       child: Scaffold(
         backgroundColor: const Color(0xFF0a0a14),
-        body: Stack(
+        body: SafeArea(
+          child: Stack(
           children: [
             // Flame game canvas
             MouseRegion(
               onHover: (event) => _flameGame.handlePointerPosition(event.localPosition),
-              child: GestureDetector(
-                onTapUp: (details) => _flameGame.handleTap(details.localPosition),
+              child: Listener(
+                onPointerMove: (event) => _flameGame.handlePointerPosition(event.localPosition),
+                onPointerUp: (event) => _flameGame.handleTap(event.localPosition),
                 child: GameWidget(game: _flameGame),
               ),
             ),
@@ -101,6 +103,7 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );
