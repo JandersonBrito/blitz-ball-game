@@ -19,6 +19,7 @@ class BallzFlameGame extends FlameGame {
 
   // constants
   static const double blockSize = 38.0;
+  static const double topOffset = 48.0; // espaço reservado para o HUD
   static const int cols = 9;
   static const int rows = 13;
   static const double ballSpeed = 320.0;
@@ -56,6 +57,7 @@ class BallzFlameGame extends FlameGame {
     final newBlocks = isBoss
         ? initBossStage(gameState.level)
         : initBlocks(gameState.level);
+    for (final b in newBlocks) b.position.y += topOffset;
     blocks.addAll(newBlocks);
   }
 
@@ -130,6 +132,7 @@ class BallzFlameGame extends FlameGame {
       // add new row at top
       final dom = allElements[Random().nextInt(allElements.length)];
       final newRow = generateRow(gameState.level, dom, 0);
+      for (final b in newRow) b.position.y += topOffset;
       blocks.addAll(newRow);
       phase = GamePhase.aim;
     }
@@ -169,6 +172,8 @@ class BallzFlameGame extends FlameGame {
 
     final canvasW = size.x;
 
+    final newBalls = <BallComponent>[];
+
     for (final ball in activeBalls) {
       if (!ball.active) continue;
       ball.position += ball.velocity * dt;
@@ -198,8 +203,10 @@ class BallzFlameGame extends FlameGame {
       }
 
       // block collisions
-      _handleBlockCollisions(ball);
+      _handleBlockCollisions(ball, newBalls);
     }
+
+    activeBalls.addAll(newBalls);
 
     final allDone = activeBalls.every((b) => !b.active) && shotQueue.isEmpty;
     if (allDone && activeBalls.isNotEmpty) {
@@ -207,7 +214,7 @@ class BallzFlameGame extends FlameGame {
     }
   }
 
-  void _handleBlockCollisions(BallComponent ball) {
+  void _handleBlockCollisions(BallComponent ball, List<BallComponent> newBalls) {
     for (int bi = blocks.length - 1; bi >= 0; bi--) {
       final block = blocks[bi];
       final bLeft   = block.position.x;
@@ -237,7 +244,7 @@ class BallzFlameGame extends FlameGame {
           blocks.removeAt(bi);
           final ang = atan2(ball.velocity.y, ball.velocity.x);
           for (final da in [-pi/3, -pi/6, pi/6, pi/3]) {
-            activeBalls.add(BallComponent(
+            newBalls.add(BallComponent(
               position: ball.position.clone(),
               velocity: Vector2(cos(ang+da)*ballSpeed, sin(ang+da)*ballSpeed),
               element: ElementType.neutral,
