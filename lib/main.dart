@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'services/settings_service.dart';
+import 'game/managers/game_state.dart';
 import 'ui/game_screen.dart';
 
 void main() async {
@@ -16,13 +17,15 @@ void main() async {
   ));
 
   final settings = await SettingsService.load();
+  final gameState = await GameState.load();
 
-  runApp(BallzApp(settings: settings));
+  runApp(BallzApp(settings: settings, gameState: gameState));
 }
 
 class BallzApp extends StatelessWidget {
   final SettingsService settings;
-  const BallzApp({super.key, required this.settings});
+  final GameState gameState;
+  const BallzApp({super.key, required this.settings, required this.gameState});
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +41,7 @@ class BallzApp extends StatelessWidget {
             secondary: const Color(0xFFEF9F27),
           ),
         ),
-        home: const GameScreen(),
+        home: GameScreen(gameState: gameState),
       ),
     );
   }

@@ -99,6 +99,17 @@ class L10n {
     return t != null ? _t(t) : id;
   }
 
+  // ── Stage Complete ────────────────────────────────────────────────────────
+  String stageCompleteTitle(int s) {
+    final label = _t(['FASE', 'STAGE', 'ETAPA', 'NIVEAU']);
+    final done  = _t(['COMPLETA!', 'COMPLETE!', '¡COMPLETA!', 'TERMINÉE!']);
+    return '$label $s $done';
+  }
+  String get nextStage =>
+      _t(['Próxima Fase', 'Next Stage', 'Siguiente Etapa', 'Étape suivante']);
+  String get backToMenu =>
+      _t(['Menu Principal', 'Main Menu', 'Menú Principal', 'Menu Principal']);
+
   // ── Game Over ─────────────────────────────────────────────────────────────
   String get gameOver => 'Game Over';
   String stageWave(int s, int w, int t) {

@@ -3,14 +3,16 @@ import 'package:flame/game.dart';
 import 'package:provider/provider.dart';
 import '../game/ballz_flame_game.dart';
 import '../game/managers/game_state.dart';
-import '../models/app_settings.dart';
+import '../services/settings_service.dart';
 import 'hud_overlay.dart';
 import 'menu_overlay.dart';
 import 'game_over_overlay.dart';
+import 'stage_complete_overlay.dart';
 import 'settings_screen.dart';
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key});
+  final GameState gameState;
+  const GameScreen({super.key, required this.gameState});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -25,7 +27,9 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
-    _gameState = GameState();
+    _gameState = widget.gameState;
+    // Se estava em game over ao reabrir o app, limpa o flag para começar de onde parou
+    if (_gameState.gameOver) _gameState.reset();
     _flameGame = BallzFlameGame(gameState: _gameState);
   }
 
@@ -43,6 +47,22 @@ class _GameScreenState extends State<GameScreen> {
     _gameState.reset();
     _flameGame = BallzFlameGame(gameState: _gameState);
     setState(() {});
+  }
+
+  void _handleNextStage() {
+    _gameState.clearStageComplete();
+    _flameGame.continueToNextStage();
+    setState(() {});
+  }
+
+  void _handleStageCompleteMenu() {
+    _gameState.clearStageComplete();
+    _flameGame.resumeGame();
+    _gameState.reset();
+    _flameGame = BallzFlameGame(gameState: _gameState);
+    setState(() {
+      _isPaused = false;
+    });
   }
 
   void _handlePause() {
@@ -73,7 +93,7 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l = context.watch<AppSettings>().l10n;
+    final l = context.watch<SettingsService>().l10n;
 
     return ChangeNotifierProvider.value(
       value: _gameState,
@@ -208,6 +228,19 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                   ),
                 ),
+
+              // Stage complete overlay
+              Consumer<GameState>(
+                builder: (ctx, state, _) {
+                  if (!state.stageComplete) return const SizedBox.shrink();
+                  return Positioned.fill(
+                    child: StageCompleteOverlay(
+                      onNextStage: _handleNextStage,
+                      onMenu: _handleStageCompleteMenu,
+                    ),
+                  );
+                },
+              ),
 
               // Game over overlay
               Consumer<GameState>(

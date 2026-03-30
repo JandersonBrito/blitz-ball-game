@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/element.dart';
 import '../../models/upgrade.dart';
 
@@ -13,8 +14,66 @@ class GameState extends ChangeNotifier {
   int waveInStage = 1;
   int wavesInStage = 1;
   bool gameOver = false;
+  bool stageComplete = false;
   ElementType ballElement = ElementType.neutral;
   Map<String, int> upgrades = {for (var u in upgradeDefs) u.id: 0};
+
+  static const _kScore = 'gs_score';
+  static const _kGold = 'gs_gold';
+  static const _kBallCount = 'gs_ball_count';
+  static const _kLevel = 'gs_level';
+  static const _kWave = 'gs_wave';
+  static const _kStage = 'gs_stage';
+  static const _kWaveInStage = 'gs_wave_in_stage';
+  static const _kWavesInStage = 'gs_waves_in_stage';
+  static const _kGameOver = 'gs_game_over';
+  static const _kStageComplete = 'gs_stage_complete';
+  static const _kBallElement = 'gs_ball_element';
+
+  static Future<GameState> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final gs = GameState();
+    gs.score = prefs.getInt(_kScore) ?? 0;
+    gs.gold = prefs.getInt(_kGold) ?? 0;
+    gs.ballCount = prefs.getInt(_kBallCount) ?? 1;
+    gs.level = prefs.getInt(_kLevel) ?? 1;
+    gs.wave = prefs.getInt(_kWave) ?? 1;
+    gs.stage = prefs.getInt(_kStage) ?? 1;
+    gs.waveInStage = prefs.getInt(_kWaveInStage) ?? 1;
+    gs.wavesInStage = prefs.getInt(_kWavesInStage) ?? 1;
+    gs.gameOver = prefs.getBool(_kGameOver) ?? false;
+    gs.stageComplete = prefs.getBool(_kStageComplete) ?? false;
+    final elIdx = prefs.getInt(_kBallElement) ?? 0;
+    gs.ballElement = ElementType.values[elIdx.clamp(0, ElementType.values.length - 1)];
+    for (final u in upgradeDefs) {
+      gs.upgrades[u.id] = prefs.getInt('gs_upg_${u.id}') ?? 0;
+    }
+    return gs;
+  }
+
+  Future<void> save() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_kScore, score);
+    await prefs.setInt(_kGold, gold);
+    await prefs.setInt(_kBallCount, ballCount);
+    await prefs.setInt(_kLevel, level);
+    await prefs.setInt(_kWave, wave);
+    await prefs.setInt(_kStage, stage);
+    await prefs.setInt(_kWaveInStage, waveInStage);
+    await prefs.setInt(_kWavesInStage, wavesInStage);
+    await prefs.setBool(_kGameOver, gameOver);
+    await prefs.setBool(_kStageComplete, stageComplete);
+    await prefs.setInt(_kBallElement, ballElement.index);
+    for (final entry in upgrades.entries) {
+      await prefs.setInt('gs_upg_${entry.key}', entry.value);
+    }
+  }
+
+  @override
+  void notifyListeners() {
+    super.notifyListeners();
+    save();
+  }
 
   bool get isBossStage => stage % 5 == 0;
 
@@ -125,7 +184,27 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setStageComplete() {
+    stageComplete = true;
+    notifyListeners();
+  }
+
+  void clearStageComplete() {
+    stageComplete = false;
+    notifyListeners();
+  }
+
   void reset() {
+    score = 0;
+    gameOver = false;
+    stageComplete = false;
+    ballElement = ElementType.neutral;
+    ballCount = initialBalls;
+    // mantém: gold, upgrades, level, stage, wave, waveInStage, wavesInStage
+    notifyListeners();
+  }
+
+  Future<void> fullReset() async {
     score = 0;
     gold = 0;
     ballCount = 1;
@@ -135,6 +214,7 @@ class GameState extends ChangeNotifier {
     waveInStage = 1;
     wavesInStage = wavesForStage(1);
     gameOver = false;
+    stageComplete = false;
     ballElement = ElementType.neutral;
     upgrades = {for (var u in upgradeDefs) u.id: 0};
     notifyListeners();

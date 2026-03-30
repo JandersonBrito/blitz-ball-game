@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/app_settings.dart';
+import '../services/settings_service.dart';
 
 class SettingsScreen extends StatelessWidget {
   final VoidCallback onBack;
@@ -8,7 +9,7 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final settings = context.watch<AppSettings>();
+    final settings = context.watch<SettingsService>();
     final l = settings.l10n;
 
     return Padding(

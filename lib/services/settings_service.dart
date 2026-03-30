@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-enum AppLanguage { pt, en, es, fr }
+import '../models/app_settings.dart';
+import '../models/l10n.dart';
 
 class SettingsService extends ChangeNotifier {
   static const _keyLanguage = 'language';
@@ -35,6 +35,11 @@ class SettingsService extends ChangeNotifier {
   AppLanguage get language => _language;
   bool get soundEnabled => _soundEnabled;
   double get volume => _volume;
+  L10n get l10n => L10n(_language);
+
+  void setLanguage(AppLanguage value) => language = value;
+  void setSoundEnabled(bool value) => soundEnabled = value;
+  void setVolume(double value) => volume = value;
 
   set language(AppLanguage value) {
     if (_language == value) return;

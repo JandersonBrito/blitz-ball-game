@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../game/managers/game_state.dart';
-import '../models/app_settings.dart';
+import '../services/settings_service.dart';
 import '../models/upgrade.dart';
 
 class UpgradeScreen extends StatelessWidget {
@@ -11,7 +11,7 @@ class UpgradeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<GameState>();
-    final l = context.watch<AppSettings>().l10n;
+    final l = context.watch<SettingsService>().l10n;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -62,7 +62,7 @@ class _UpgradeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<GameState>();
-    final l = context.watch<AppSettings>().l10n;
+    final l = context.watch<SettingsService>().l10n;
     final lvl = state.upgrades[def.id] ?? 0;
     final maxed = lvl >= def.levels.length;
     final next = maxed ? null : def.levels[lvl];

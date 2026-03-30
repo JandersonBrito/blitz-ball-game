@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../game/managers/game_state.dart';
-import '../models/app_settings.dart';
+import '../services/settings_service.dart';
 import '../models/element.dart';
 
 class HudOverlay extends StatelessWidget {
@@ -19,7 +19,7 @@ class HudOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<GameState>();
-    final l = context.watch<AppSettings>().l10n;
+    final l = context.watch<SettingsService>().l10n;
     final elInfo = elementDataMap[state.ballElement]!;
 
     return SafeArea(

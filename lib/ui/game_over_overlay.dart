@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../game/managers/game_state.dart';
-import '../models/app_settings.dart';
+import '../services/settings_service.dart';
 
 class GameOverOverlay extends StatelessWidget {
   final VoidCallback onRestart;
@@ -10,7 +10,7 @@ class GameOverOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<GameState>();
-    final l = context.watch<AppSettings>().l10n;
+    final l = context.watch<SettingsService>().l10n;
     return Container(
       color: const Color(0xE80A0A14),
       child: Center(

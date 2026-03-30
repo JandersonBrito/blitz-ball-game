@@ -10,7 +10,7 @@ import 'managers/game_state.dart';
 import 'managers/block_factory.dart';
 import '../models/element.dart';
 
-enum GamePhase { menu, aim, shooting, returning, gameOver }
+enum GamePhase { menu, aim, shooting, returning, gameOver, stageComplete }
 
 class BallzFlameGame extends FlameGame {
   final GameState gameState;
@@ -22,7 +22,7 @@ class BallzFlameGame extends FlameGame {
   static const double topOffset = 48.0; // espaço reservado para o HUD
   static const int cols = 9;
   static const int rows = 13;
-  static const double ballSpeed = 320.0;
+  static const double ballSpeed = 400.0;
   static const double ballRadius = 5.0;
 
   late double floorY;
@@ -123,9 +123,9 @@ class BallzFlameGame extends FlameGame {
     final lastWave = gameState.waveInStage >= gameState.wavesInStage;
 
     if (lastWave && cleared) {
-      gameState.advanceStage();
-      _loadBlocks();
-      phase = GamePhase.menu;
+      phase = GamePhase.stageComplete;
+      gameState.setStageComplete();
+      return;
     } else {
       if (!lastWave) gameState.advanceWave();
       else gameState.repeatWave();
@@ -314,6 +314,12 @@ class BallzFlameGame extends FlameGame {
     if (phase != GamePhase.aim) return;
     handlePointerPosition(pos);
     shoot();
+  }
+
+  void continueToNextStage() {
+    gameState.advanceStage();
+    _loadBlocks();
+    phase = GamePhase.menu;
   }
 
   void pauseGame() => paused = true;
