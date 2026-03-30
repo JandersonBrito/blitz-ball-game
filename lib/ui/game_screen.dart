@@ -120,9 +120,7 @@ class _GameScreenState extends State<GameScreen> {
                 top: 0, left: 0, right: 0,
                 child: Consumer<GameState>(
                   builder: (ctx, state, _) => HudOverlay(
-                    onForceReturn: _handleForceReturn,
                     onPause: _handlePause,
-                    showReturnButton: _flameGame.phase == GamePhase.shooting,
                   ),
                 ),
               ),

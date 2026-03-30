@@ -296,13 +296,19 @@ class BallzFlameGame extends FlameGame {
             blocks.removeAt(bi);
           } else {
             if (isCrit) block.triggerShake();
-            // bounce
+            // bounce + push ball out of block to prevent multi-frame hits
             final overlapX = min((ball.position.x - bLeft).abs(), (ball.position.x - bRight).abs());
             final overlapY = min((ball.position.y - bTop).abs(),  (ball.position.y - bBottom).abs());
             if (overlapX < overlapY) {
               ball.velocity.x = -ball.velocity.x;
+              ball.position.x = ball.position.x < (bLeft + bRight) / 2
+                  ? bLeft - ballRadius - 1
+                  : bRight + ballRadius + 1;
             } else {
               ball.velocity.y = -ball.velocity.y;
+              ball.position.y = ball.position.y < (bTop + bBottom) / 2
+                  ? bTop - ballRadius - 1
+                  : bBottom + ballRadius + 1;
             }
           }
       }
