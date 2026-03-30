@@ -235,6 +235,9 @@ class _GameScreenState extends State<GameScreen> {
                   if (!state.stageComplete) return const SizedBox.shrink();
                   return Positioned.fill(
                     child: StageCompleteOverlay(
+                      stage: state.stage,
+                      score: state.score,
+                      gold: state.gold,
                       onNextStage: _handleNextStage,
                       onMenu: _handleStageCompleteMenu,
                     ),

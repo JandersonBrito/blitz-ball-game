@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../game/managers/game_state.dart';
 import '../services/settings_service.dart';
 
 class StageCompleteOverlay extends StatelessWidget {
+  final int stage;
+  final int score;
+  final int gold;
   final VoidCallback onNextStage;
   final VoidCallback onMenu;
 
   const StageCompleteOverlay({
     super.key,
+    required this.stage,
+    required this.score,
+    required this.gold,
     required this.onNextStage,
     required this.onMenu,
   });
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<GameState>();
     final l = context.watch<SettingsService>().l10n;
 
     return Container(
@@ -33,7 +37,7 @@ class StageCompleteOverlay extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              l.stageCompleteTitle(state.stage),
+              l.stageCompleteTitle(stage),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 26,
@@ -43,7 +47,7 @@ class StageCompleteOverlay extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              l.scoreLabel(state.score),
+              l.scoreLabel(score),
               style: const TextStyle(
                 color: Colors.white54,
                 fontSize: 13,
@@ -52,7 +56,7 @@ class StageCompleteOverlay extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              l.goldLabel(state.gold),
+              l.goldLabel(gold),
               style: const TextStyle(
                 color: Color(0xFFEF9F27),
                 fontSize: 13,

@@ -41,6 +41,25 @@ class BlockComponent extends PositionComponent with CollisionCallbacks {
   bool get isAlive => hp > 0;
   double get hpRatio => maxHp > 0 ? hp / maxHp : 1.0;
 
+  // shake state
+  static const double _shakeDuration = 0.22;
+  double _shakeTimer = 0;
+  double shakeOffsetX = 0;
+  double shakeOffsetY = 0;
+
+  void triggerShake() {
+    _shakeTimer = _shakeDuration;
+  }
+
+  void updateShake(double dt) {
+    if (_shakeTimer <= 0) return;
+    _shakeTimer = max(0, _shakeTimer - dt);
+    final fade = _shakeTimer / _shakeDuration;
+    final t = _shakeTimer * 90;
+    shakeOffsetX = sin(t) * 3.5 * fade;
+    shakeOffsetY = sin(t * 1.3) * 2.0 * fade;
+  }
+
   void takeDamage(int dmg) {
     hp = max(0, hp - dmg);
   }

@@ -22,7 +22,7 @@ class BallzFlameGame extends FlameGame {
   static const double topOffset = 48.0; // espaço reservado para o HUD
   static const int cols = 9;
   static const int rows = 13;
-  static const double ballSpeed = 400.0;
+  static const double ballSpeed = 550.0;
   static const double ballRadius = 5.0;
 
   late double floorY;
@@ -143,6 +143,8 @@ class BallzFlameGame extends FlameGame {
     super.update(dt);
     _pulseTime += dt;
 
+    for (final b in blocks) b.updateShake(dt);
+
     switch (phase) {
       case GamePhase.shooting:
         _updateShooting(dt);
@@ -242,11 +244,27 @@ class BallzFlameGame extends FlameGame {
 
         case BlockType.triple:
           blocks.removeAt(bi);
-          final ang = atan2(ball.velocity.y, ball.velocity.x);
-          for (final da in [-pi/3, -pi/6, pi/6, pi/3]) {
+          // Sort remaining blocks by distance from ball and aim each new ball at a different block
+          final candidates = List<BlockComponent>.from(blocks)
+            ..sort((a, b) {
+              final da = sqrt(pow(a.position.x + a.size.x/2 - ball.position.x, 2) + pow(a.position.y + a.size.y/2 - ball.position.y, 2));
+              final db = sqrt(pow(b.position.x + b.size.x/2 - ball.position.x, 2) + pow(b.position.y + b.size.y/2 - ball.position.y, 2));
+              return da.compareTo(db);
+            });
+          const fallbackAngles = [-pi/3, -pi/6, pi/6, pi/3];
+          final baseAng = atan2(ball.velocity.y, ball.velocity.x);
+          for (int i = 0; i < 4; i++) {
+            double targetAng;
+            if (i < candidates.length) {
+              final cx = candidates[i].position.x + candidates[i].size.x / 2;
+              final cy = candidates[i].position.y + candidates[i].size.y / 2;
+              targetAng = atan2(cy - ball.position.y, cx - ball.position.x);
+            } else {
+              targetAng = baseAng + fallbackAngles[i];
+            }
             newBalls.add(BallComponent(
               position: ball.position.clone(),
-              velocity: Vector2(cos(ang+da)*ballSpeed, sin(ang+da)*ballSpeed),
+              velocity: Vector2(cos(targetAng)*ballSpeed, sin(targetAng)*ballSpeed),
               element: ElementType.neutral,
             ));
           }
@@ -277,6 +295,7 @@ class BallzFlameGame extends FlameGame {
             gameState.addScore(block.isBoss ? 20 : 3);
             blocks.removeAt(bi);
           } else {
+            if (isCrit) block.triggerShake();
             // bounce
             final overlapX = min((ball.position.x - bLeft).abs(), (ball.position.x - bRight).abs());
             final overlapY = min((ball.position.y - bTop).abs(),  (ball.position.y - bBottom).abs());
@@ -311,6 +330,10 @@ class BallzFlameGame extends FlameGame {
   }
 
   void handleTap(Offset pos) {
+    if (phase == GamePhase.shooting) {
+      forceReturn();
+      return;
+    }
     if (phase != GamePhase.aim) return;
     handlePointerPosition(pos);
     shoot();
@@ -359,7 +382,7 @@ class BallzFlameGame extends FlameGame {
   void _drawBlocks(Canvas canvas) {
     for (final b in blocks) {
       canvas.save();
-      canvas.translate(b.position.x, b.position.y);
+      canvas.translate(b.position.x + b.shakeOffsetX, b.position.y + b.shakeOffsetY);
       b.render(canvas);
       canvas.restore();
     }

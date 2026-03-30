@@ -18,9 +18,9 @@ List<BlockComponent> generateRow(int level, ElementType dominantEl, int rowIndex
 
     final r = _rng.nextDouble();
     final bool isBonus   = r < 0.08;
-    final bool isGold    = !isBonus && r < 0.18;
-    final bool isElemPow = !isBonus && !isGold && r < 0.24;
-    final bool isTriple  = !isBonus && !isGold && !isElemPow && r < 0.31;
+    final bool isGold    = !isBonus && r < 0.28;
+    final bool isElemPow = !isBonus && !isGold && r < 0.34;
+    final bool isTriple  = !isBonus && !isGold && !isElemPow && r < 0.48;
 
     ElementType el = ElementType.neutral;
     if (!isBonus && !isGold && !isElemPow && !isTriple) {
