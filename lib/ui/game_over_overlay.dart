@@ -5,7 +5,13 @@ import '../services/settings_service.dart';
 
 class GameOverOverlay extends StatelessWidget {
   final VoidCallback onRestart;
-  const GameOverOverlay({super.key, required this.onRestart});
+  final VoidCallback? onWatchAd; // null quando o ad não está disponível
+
+  const GameOverOverlay({
+    super.key,
+    required this.onRestart,
+    this.onWatchAd,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +48,27 @@ class GameOverOverlay extends StatelessWidget {
                     fontSize: 13,
                     fontFamily: 'monospace')),
             const SizedBox(height: 24),
+
+            // Botão rewarded — só aparece quando o ad está carregado
+            if (onWatchAd != null) ...[
+              ElevatedButton.icon(
+                onPressed: onWatchAd,
+                icon: const Text('▶', style: TextStyle(fontSize: 14)),
+                label: const Text('Continuar (assistir anúncio)',
+                    style: TextStyle(
+                        fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1D9E75),
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+
             ElevatedButton(
               onPressed: onRestart,
               style: ElevatedButton.styleFrom(

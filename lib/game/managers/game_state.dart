@@ -184,6 +184,11 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void continueAfterAd() {
+    gameOver = false;
+    notifyListeners();
+  }
+
   void setStageComplete() {
     stageComplete = true;
     notifyListeners();

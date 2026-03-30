@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'services/settings_service.dart';
+import 'services/ad_service.dart';
 import 'game/managers/game_state.dart';
 import 'ui/game_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AdService.instance.initialize();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,

@@ -345,6 +345,16 @@ class BallzFlameGame extends FlameGame {
     shoot();
   }
 
+  /// Chamado após o jogador assistir ao anúncio premiado no game over.
+  /// Move todos os blocos uma linha para cima e retoma o jogo.
+  void continueAfterAd() {
+    for (final b in blocks) {
+      b.position.y -= blockSize;
+    }
+    gameState.continueAfterAd();
+    phase = GamePhase.aim;
+  }
+
   void continueToNextStage() {
     gameState.advanceStage();
     _loadBlocks();
