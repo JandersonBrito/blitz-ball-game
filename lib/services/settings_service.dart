@@ -22,7 +22,7 @@ class SettingsService extends ChangeNotifier {
 
   static Future<SettingsService> load() async {
     final prefs = await SharedPreferences.getInstance();
-    final langIndex = prefs.getInt(_keyLanguage) ?? 0;
+    final langIndex = prefs.getInt(_keyLanguage) ?? AppLanguage.en.index;
     final soundEnabled = prefs.getBool(_keySoundEnabled) ?? true;
     final volume = prefs.getDouble(_keyVolume) ?? 0.8;
     return SettingsService._(
