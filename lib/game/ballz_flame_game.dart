@@ -130,11 +130,13 @@ class BallzFlameGame extends FlameGame {
       if (!lastWave) gameState.advanceWave();
       else gameState.repeatWave();
       gameState.incrementStageRounds();
-      // add new row at top
+      // add two new rows at top
       final dom = allElements[Random().nextInt(allElements.length)];
-      final newRow = generateRow(gameState.stage, dom, 0);
-      for (final b in newRow) b.position.y += topOffset;
-      blocks.addAll(newRow);
+      for (int r = 0; r < 2; r++) {
+        final newRow = generateRow(gameState.stage, dom, r);
+        for (final b in newRow) b.position.y += topOffset;
+        blocks.addAll(newRow);
+      }
       phase = GamePhase.aim;
     }
   }

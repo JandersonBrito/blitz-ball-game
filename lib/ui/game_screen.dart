@@ -28,6 +28,12 @@ class _GameScreenState extends State<GameScreen> {
   bool _showPauseSettings = false;
   BannerAd? _bannerAd;
 
+  // Wave toast state
+  bool _waveToastVisible = false;
+  int _toastStage = 1;
+  int _toastWave = 1;
+  int _toastTotal = 1;
+
   @override
   void initState() {
     super.initState();
@@ -35,6 +41,31 @@ class _GameScreenState extends State<GameScreen> {
     if (_gameState.gameOver) _gameState.reset();
     _flameGame = BallzFlameGame(gameState: _gameState);
     _loadBanner();
+    _gameState.addListener(_onGameStateChange);
+  }
+
+  @override
+  void dispose() {
+    _gameState.removeListener(_onGameStateChange);
+    _bannerAd?.dispose();
+    super.dispose();
+  }
+
+  void _onGameStateChange() {
+    if (_gameState.showWaveToast && !_waveToastVisible) {
+      setState(() {
+        _waveToastVisible = true;
+        _toastStage = _gameState.stage;
+        _toastWave = _gameState.waveInStage;
+        _toastTotal = _gameState.wavesInStage;
+      });
+      Future.delayed(const Duration(milliseconds: 2200), () {
+        if (mounted) {
+          setState(() => _waveToastVisible = false);
+          _gameState.clearWaveToast();
+        }
+      });
+    }
   }
 
   void _loadBanner() {
@@ -52,12 +83,6 @@ class _GameScreenState extends State<GameScreen> {
     );
     _bannerAd = banner;
     banner.load();
-  }
-
-  @override
-  void dispose() {
-    _bannerAd?.dispose();
-    super.dispose();
   }
 
   void _handleStartWave() {
@@ -168,6 +193,19 @@ class _GameScreenState extends State<GameScreen> {
                       child: Consumer<GameState>(
                         builder: (ctx, state, _) => HudOverlay(
                           onPause: _handlePause,
+                        ),
+                      ),
+                    ),
+
+                    // Wave toast
+                    IgnorePointer(
+                      child: AnimatedOpacity(
+                        opacity: _waveToastVisible ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 350),
+                        child: _WaveToast(
+                          stage: _toastStage,
+                          wave: _toastWave,
+                          total: _toastTotal,
                         ),
                       ),
                     ),
@@ -338,6 +376,75 @@ class _GameScreenState extends State<GameScreen> {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WaveToast extends StatelessWidget {
+  final int stage;
+  final int wave;
+  final int total;
+
+  const _WaveToast({
+    required this.stage,
+    required this.wave,
+    required this.total,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.watch<SettingsService>().l10n;
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xF0121220),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF1D9E75), width: 1.5),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x661D9E75),
+              blurRadius: 18,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${l.hudStage} $stage',
+              style: const TextStyle(
+                color: Colors.white38,
+                fontSize: 11,
+                letterSpacing: 3,
+                fontFamily: 'monospace',
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              l.nextWave,
+              style: const TextStyle(
+                color: Color(0xFF1D9E75),
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+                fontFamily: 'monospace',
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              l.waveOf(wave, total),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ],
         ),
       ),
     );

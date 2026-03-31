@@ -16,6 +16,7 @@ class GameState extends ChangeNotifier {
   bool gameOver = false;
   bool stageComplete = false;
   bool showHelpOffer = false;
+  bool showWaveToast = false;
   bool assistActive = false;
   int stageRoundsPlayed = 0;
   ElementType ballElement = ElementType.neutral;
@@ -170,7 +171,12 @@ class GameState extends ChangeNotifier {
     level++;
     wave++;
     waveInStage++;
+    showWaveToast = true;
     notifyListeners();
+  }
+
+  void clearWaveToast() {
+    showWaveToast = false;
   }
 
   void repeatWave() {

@@ -5,6 +5,7 @@ import '../services/settings_service.dart';
 import '../models/element.dart';
 import 'upgrade_screen.dart';
 import 'settings_screen.dart';
+import 'tutorial_screen.dart';
 
 class MenuOverlay extends StatefulWidget {
   final VoidCallback onStartWave;
@@ -18,6 +19,23 @@ class MenuOverlay extends StatefulWidget {
 class _MenuOverlayState extends State<MenuOverlay> {
   bool _showUpgrades = false;
   bool _showSettings = false;
+  bool _showTutorial = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final settings = context.read<SettingsService>();
+      if (!settings.tutorialSeen) {
+        setState(() => _showTutorial = true);
+      }
+    });
+  }
+
+  void _closeTutorial() {
+    context.read<SettingsService>().markTutorialSeen();
+    setState(() => _showTutorial = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +47,9 @@ class _MenuOverlayState extends State<MenuOverlay> {
             ? SettingsScreen(onBack: () => setState(() => _showSettings = false))
             : _showUpgrades
                 ? UpgradeScreen(onBack: () => setState(() => _showUpgrades = false))
-                : _buildMainMenu(state, context),
+                : _showTutorial
+                    ? TutorialScreen(onBack: _closeTutorial)
+                    : _buildMainMenu(state, context),
       ),
     );
   }
@@ -162,6 +182,22 @@ class _MenuOverlayState extends State<MenuOverlay> {
                   child: Text(l.settingsBtn,
                       style: const TextStyle(
                           fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: () => setState(() => _showTutorial = true),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF6B6B8A)),
+                    foregroundColor: const Color(0xFF9E9EBF),
+                    minimumSize: const Size(double.infinity, 40),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: Text(l.tutorialBtn,
+                      style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.normal,
+                          fontSize: 12)),
                 ),
               ],
             ),
