@@ -36,6 +36,9 @@ class BallzFlameGame extends FlameGame {
   final List<_ReturningBall> returningBalls = [];
   final List<_ShotEntry> shotQueue = [];
 
+  // Set when boss dies inside ball loop — forceReturn called after loop exits
+  bool _pendingForceReturn = false;
+
   double shotTimer = 0;
   static const double shotInterval = 0.08;
   int landed = 0;
@@ -119,24 +122,26 @@ class BallzFlameGame extends FlameGame {
       return;
     }
 
-    final cleared = blocks.isEmpty;
-    final lastWave = gameState.waveInStage >= gameState.wavesInStage;
-
-    if (lastWave && cleared) {
-      phase = GamePhase.stageComplete;
-      gameState.setStageComplete();
-      return;
-    } else {
-      if (!lastWave) gameState.advanceWave();
-      else gameState.repeatWave();
-      gameState.incrementStageRounds();
-      // add two new rows at top
+    if (blocks.isEmpty) {
+      // Wave cleared — advance or finish stage
+      final lastWave = gameState.waveInStage >= gameState.wavesInStage;
+      if (lastWave) {
+        phase = GamePhase.stageComplete;
+        gameState.setStageComplete();
+        return;
+      }
+      gameState.advanceWave();
+      // Spawn 2 fresh rows for the next wave (field is empty, no overlap check needed)
       final dom = allElements[Random().nextInt(allElements.length)];
       for (int r = 0; r < 2; r++) {
         final newRow = generateRow(gameState.stage, dom, r);
         for (final b in newRow) b.position.y += topOffset;
         blocks.addAll(newRow);
       }
+      phase = GamePhase.menu;
+    } else {
+      // Blocks remain — wave continues, just let player aim again
+      gameState.incrementStageRounds();
       phase = GamePhase.aim;
     }
   }
@@ -207,11 +212,20 @@ class BallzFlameGame extends FlameGame {
         continue;
       }
 
-      // block collisions
+      // block collisions — may set _pendingForceReturn if boss dies
       _handleBlockCollisions(ball, newBalls);
+
+      // boss died: finish loop before touching activeBalls
+      if (_pendingForceReturn) break;
     }
 
     activeBalls.addAll(newBalls);
+
+    if (_pendingForceReturn) {
+      _pendingForceReturn = false;
+      forceReturn();
+      return;
+    }
 
     if (blocks.isEmpty) {
       forceReturn();
@@ -304,7 +318,10 @@ class BallzFlameGame extends FlameGame {
             final wasBoss = block.isBoss;
             blocks.removeAt(bi);
             if (wasBoss) {
-              forceReturn();
+              // Don't call forceReturn() here — we're inside the activeBalls
+              // for-each loop; clearing activeBalls would cause
+              // ConcurrentModificationException. Signal the caller instead.
+              _pendingForceReturn = true;
               return;
             }
           } else {
