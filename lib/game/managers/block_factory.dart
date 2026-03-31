@@ -100,9 +100,10 @@ List<BlockComponent> initBossStage(int level) {
   const blockSize = BlockComponent.blockSize;
   final bossHp = level * 18;
 
+  // Boss at row 1 (shifted down one row to allow guard blocks above)
   final blocks = <BlockComponent>[
     BlockComponent(
-      position: Vector2(bossCol * blockSize + 1, 1),
+      position: Vector2(bossCol * blockSize + 1, blockSize + 1),
       type: BlockType.boss,
       hp: bossHp,
       maxHp: bossHp,
@@ -112,30 +113,27 @@ List<BlockComponent> initBossStage(int level) {
     ),
   ];
 
-  // guard blocks on rows 2-3
-  for (int c = 0; c < 9; c++) {
-    if (c == bossCol || c == bossCol + 1) continue;
-    if (_rng.nextDouble() < 0.65) {
-      final hp = (level * (0.6 + _rng.nextDouble() * 0.6)).ceil();
-      blocks.add(BlockComponent(
-        position: Vector2(c * blockSize + 1, 2 * blockSize + 1),
-        type: BlockType.normal,
-        hp: hp,
-        maxHp: hp,
-        element: _rng.nextDouble() < 0.5 ? el : ElementType.neutral,
-      ));
-    }
-    if (_rng.nextDouble() < 0.4) {
-      final hp = (level * (0.4 + _rng.nextDouble() * 0.4)).ceil();
-      blocks.add(BlockComponent(
-        position: Vector2(c * blockSize + 1, 3 * blockSize + 1),
-        type: BlockType.normal,
-        hp: hp,
-        maxHp: hp,
-        element: ElementType.neutral,
-      ));
-    }
+  // Surround boss on all 4 sides
+  // Boss occupies cols 4-5, rows 1-2 (2x2 blocks)
+  BlockComponent guard(int col, int row) {
+    final hp = (level * (0.5 + _rng.nextDouble() * 0.5)).ceil();
+    return BlockComponent(
+      position: Vector2(col * blockSize + 1, row * blockSize + 1),
+      type: BlockType.normal,
+      hp: hp,
+      maxHp: hp,
+      element: _rng.nextDouble() < 0.5 ? el : ElementType.neutral,
+    );
   }
+
+  // Top row (row 0): cols 3–6
+  for (int c = 3; c <= 6; c++) blocks.add(guard(c, 0));
+  // Left side (col 3): rows 1–2
+  for (int r = 1; r <= 2; r++) blocks.add(guard(3, r));
+  // Right side (col 6): rows 1–2
+  for (int r = 1; r <= 2; r++) blocks.add(guard(6, r));
+  // Bottom row (row 3): cols 3–6
+  for (int c = 3; c <= 6; c++) blocks.add(guard(c, 3));
 
   return blocks;
 }

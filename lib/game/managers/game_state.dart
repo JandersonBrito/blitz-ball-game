@@ -15,6 +15,9 @@ class GameState extends ChangeNotifier {
   int wavesInStage = 1;
   bool gameOver = false;
   bool stageComplete = false;
+  bool showHelpOffer = false;
+  bool assistActive = false;
+  int stageRoundsPlayed = 0;
   ElementType ballElement = ElementType.neutral;
   Map<String, int> upgrades = {for (var u in upgradeDefs) u.id: 0};
 
@@ -88,14 +91,14 @@ class GameState extends ChangeNotifier {
 
   int get baseDamage {
     final lvl = upgrades['power'] ?? 0;
-    if (lvl == 0) return 1;
-    return upgradeDefs.firstWhere((u) => u.id == 'power').levels[lvl - 1].value.toInt();
+    final base = lvl == 0 ? 1 : upgradeDefs.firstWhere((u) => u.id == 'power').levels[lvl - 1].value.toInt();
+    return assistActive ? base * 2 : base;
   }
 
   double get critChance {
     final lvl = upgrades['crit'] ?? 0;
-    if (lvl == 0) return 0;
-    return upgradeDefs.firstWhere((u) => u.id == 'crit').levels[lvl - 1].value;
+    final base = lvl == 0 ? 0.0 : upgradeDefs.firstWhere((u) => u.id == 'crit').levels[lvl - 1].value;
+    return assistActive ? (base + 0.5).clamp(0.0, 1.0) : base;
   }
 
   double get aimBonus {
@@ -158,6 +161,8 @@ class GameState extends ChangeNotifier {
     wave++;
     waveInStage = 1;
     wavesInStage = wavesForStage(stage);
+    assistActive = false;
+    stageRoundsPlayed = 0;
     notifyListeners();
   }
 
@@ -179,8 +184,32 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void incrementStageRounds() {
+    stageRoundsPlayed++;
+    if (stageRoundsPlayed >= 7 && !assistActive) {
+      showHelpOffer = true;
+      notifyListeners();
+    }
+  }
+
+  void applyHelpAssist() {
+    ballCount += 3;
+    assistActive = true;
+    showHelpOffer = false;
+    stageRoundsPlayed = 0;
+    notifyListeners();
+  }
+
+  void dismissHelpOffer() {
+    showHelpOffer = false;
+    stageRoundsPlayed = 0;
+    notifyListeners();
+  }
+
   void setGameOver() {
     gameOver = true;
+    assistActive = false;
+    stageRoundsPlayed = 0;
     notifyListeners();
   }
 

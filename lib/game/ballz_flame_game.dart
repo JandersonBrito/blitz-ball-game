@@ -129,6 +129,7 @@ class BallzFlameGame extends FlameGame {
     } else {
       if (!lastWave) gameState.advanceWave();
       else gameState.repeatWave();
+      gameState.incrementStageRounds();
       // add new row at top
       final dom = allElements[Random().nextInt(allElements.length)];
       final newRow = generateRow(gameState.stage, dom, 0);
@@ -209,6 +210,11 @@ class BallzFlameGame extends FlameGame {
     }
 
     activeBalls.addAll(newBalls);
+
+    if (blocks.isEmpty) {
+      forceReturn();
+      return;
+    }
 
     final allDone = activeBalls.every((b) => !b.active) && shotQueue.isEmpty;
     if (allDone && activeBalls.isNotEmpty) {
@@ -293,7 +299,12 @@ class BallzFlameGame extends FlameGame {
             if (block.type == BlockType.gold) gameState.addGold(block.goldValue);
             if (block.isBoss) gameState.addGold(block.goldValue * 2);
             gameState.addScore(block.isBoss ? 20 : 3);
+            final wasBoss = block.isBoss;
             blocks.removeAt(bi);
+            if (wasBoss) {
+              forceReturn();
+              return;
+            }
           } else {
             if (isCrit) block.triggerShake();
             // bounce + push ball out of block to prevent multi-frame hits

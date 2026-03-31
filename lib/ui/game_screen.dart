@@ -11,6 +11,7 @@ import 'menu_overlay.dart';
 import 'game_over_overlay.dart';
 import 'stage_complete_overlay.dart';
 import 'settings_screen.dart';
+import 'help_offer_overlay.dart';
 
 class GameScreen extends StatefulWidget {
   final GameState gameState;
@@ -76,6 +77,18 @@ class _GameScreenState extends State<GameScreen> {
       _flameGame.continueAfterAd();
       setState(() {});
     });
+  }
+
+  void _handleHelpOfferAccepted() {
+    AdService.instance.showRewarded(() {
+      _gameState.applyHelpAssist();
+      setState(() {});
+    });
+  }
+
+  void _handleHelpOfferDismissed() {
+    _gameState.dismissHelpOffer();
+    setState(() {});
   }
 
   void _handleNextStage() {
@@ -278,6 +291,21 @@ class _GameScreenState extends State<GameScreen> {
                             gold: state.gold,
                             onNextStage: _handleNextStage,
                             onMenu: _handleStageCompleteMenu,
+                          ),
+                        );
+                      },
+                    ),
+
+                    // Help offer overlay
+                    Consumer<GameState>(
+                      builder: (ctx, state, _) {
+                        if (!state.showHelpOffer) return const SizedBox.shrink();
+                        return Positioned.fill(
+                          child: HelpOfferOverlay(
+                            onWatchAd: AdService.instance.isRewardedReady
+                                ? _handleHelpOfferAccepted
+                                : null,
+                            onDismiss: _handleHelpOfferDismissed,
                           ),
                         );
                       },
