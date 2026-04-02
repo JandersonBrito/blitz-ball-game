@@ -192,14 +192,15 @@ class GameState extends ChangeNotifier {
 
   void incrementStageRounds() {
     stageRoundsPlayed++;
-    if (stageRoundsPlayed >= 7 && !assistActive) {
+    final threshold = isBossStage ? 3 : 7;
+    if (stageRoundsPlayed >= threshold && !assistActive) {
       showHelpOffer = true;
       notifyListeners();
     }
   }
 
   void applyHelpAssist() {
-    ballCount += 3;
+    ballCount += isBossStage ? 5 : 3;
     assistActive = true;
     showHelpOffer = false;
     stageRoundsPlayed = 0;

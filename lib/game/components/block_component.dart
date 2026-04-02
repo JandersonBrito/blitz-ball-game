@@ -159,10 +159,15 @@ class BlockComponent extends PositionComponent with CollisionCallbacks {
             hp > 9999 ? 9 : hp > 999 ? 11 : 13, elementDataMap[element]!.textColor);
         break;
       case BlockType.normal:
-        _drawText(canvas, '$hp', center, hp > 99 ? 8 : 10, elementDataMap[element]!.textColor);
-        if (element != ElementType.neutral) {
-          _drawText(canvas, elementDataMap[element]!.icon, Offset(w - 4, 4), 7, Colors.white70,
-              textAlign: TextAlign.right);
+        if (goldValue > 0) {
+          _drawText(canvas, '$hp', Offset(w / 2, h / 2 - 4), hp > 99 ? 8 : 10, elementDataMap[element]!.textColor);
+          _drawText(canvas, '+$goldValue', Offset(w / 2, h / 2 + 7), 7, const Color(0xFFEF9F27));
+        } else {
+          _drawText(canvas, '$hp', center, hp > 99 ? 8 : 10, elementDataMap[element]!.textColor);
+          if (element != ElementType.neutral) {
+            _drawText(canvas, elementDataMap[element]!.icon, Offset(w - 4, 4), 7, Colors.white70,
+                textAlign: TextAlign.right);
+          }
         }
         break;
     }

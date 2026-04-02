@@ -312,8 +312,7 @@ class BallzFlameGame extends FlameGame {
           gameState.addScore(1);
 
           if (!block.isAlive) {
-            if (block.type == BlockType.gold) gameState.addGold(block.goldValue);
-            if (block.isBoss) gameState.addGold(block.goldValue * 2);
+            if (block.goldValue > 0) gameState.addGold(block.isBoss ? block.goldValue * 2 : block.goldValue);
             gameState.addScore(block.isBoss ? 20 : 3);
             final wasBoss = block.isBoss;
             blocks.removeAt(bi);

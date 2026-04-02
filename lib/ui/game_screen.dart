@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import 'package:provider/provider.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../game/ballz_flame_game.dart';
 import '../game/managers/game_state.dart';
 import '../services/settings_service.dart';
@@ -26,7 +25,7 @@ class _GameScreenState extends State<GameScreen> {
   late GameState _gameState;
   bool _isPaused = false;
   bool _showPauseSettings = false;
-  BannerAd? _bannerAd;
+  bool _bannerLoaded = false;
 
   // Wave toast state
   bool _waveToastVisible = false;
@@ -47,7 +46,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void dispose() {
     _gameState.removeListener(_onGameStateChange);
-    _bannerAd?.dispose();
+    AdService.instance.disposeBanner();
     super.dispose();
   }
 
@@ -69,20 +68,9 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _loadBanner() {
-    final banner = BannerAd(
-      adUnitId: AdService.bannerId,
-      size: AdSize.banner,
-      request: const AdRequest(),
-      listener: BannerAdListener(
-        onAdLoaded: (_) => setState(() {}),
-        onAdFailedToLoad: (ad, _) {
-          ad.dispose();
-          _bannerAd = null;
-        },
-      ),
-    );
-    _bannerAd = banner;
-    banner.load();
+    AdService.instance.loadBanner(() {
+      if (mounted) setState(() => _bannerLoaded = true);
+    });
   }
 
   void _handleStartWave() {
@@ -161,7 +149,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final l = context.watch<SettingsService>().l10n;
-    final bannerLoaded = _bannerAd != null;
+    final bannerWidget = AdService.instance.bannerWidget;
 
     return ChangeNotifierProvider.value(
       value: _gameState,
@@ -368,11 +356,11 @@ class _GameScreenState extends State<GameScreen> {
               ),
 
               // ── Banner AdMob ──────────────────────────────────────────────
-              if (bannerLoaded)
+              if (bannerWidget != null)
                 SizedBox(
-                  width: _bannerAd!.size.width.toDouble(),
-                  height: _bannerAd!.size.height.toDouble(),
-                  child: AdWidget(ad: _bannerAd!),
+                  width: AdService.instance.bannerWidth,
+                  height: AdService.instance.bannerHeight,
+                  child: bannerWidget,
                 ),
             ],
           ),

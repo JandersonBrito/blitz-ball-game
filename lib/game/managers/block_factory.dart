@@ -19,7 +19,7 @@ const _layoutPatterns = [
   [1, 2, 4, 5, 6, 7],      // two clusters with edge + center gap
 ];
 
-List<BlockComponent> generateRow(int level, ElementType dominantEl, int rowIndex) {
+List<BlockComponent> generateRow(int level, ElementType dominantEl, int rowIndex, {bool isPreBoss = false}) {
   final blocks = <BlockComponent>[];
   const blockSize = BlockComponent.blockSize;
 
@@ -31,10 +31,13 @@ List<BlockComponent> generateRow(int level, ElementType dominantEl, int rowIndex
     if (_rng.nextDouble() >= 0.80) continue;
 
     final r = _rng.nextDouble();
-    final bool isBonus   = r < 0.08;
-    final bool isGold    = !isBonus && r < 0.28;
-    final bool isElemPow = !isBonus && !isGold && r < 0.34;
-    final bool isTriple  = !isBonus && !isGold && !isElemPow && r < 0.48;
+    // Pre-boss stage: higher chance of bonus ball (12%) and gold (50%)
+    final double bonusThreshold = isPreBoss ? 0.12 : 0.08;
+    final double goldThreshold  = isPreBoss ? 0.50 : 0.28;
+    final bool isBonus   = r < bonusThreshold;
+    final bool isGold    = !isBonus && r < goldThreshold;
+    final bool isElemPow = !isBonus && !isGold && r < (isPreBoss ? 0.56 : 0.34);
+    final bool isTriple  = !isBonus && !isGold && !isElemPow && r < (isPreBoss ? 0.70 : 0.48);
 
     ElementType el = ElementType.neutral;
     if (!isBonus && !isGold && !isElemPow && !isTriple) {
@@ -87,9 +90,22 @@ List<BlockComponent> generateRow(int level, ElementType dominantEl, int rowIndex
 
 List<BlockComponent> initBlocks(int level) {
   final dom = allElements[_rng.nextInt(allElements.length)];
+  final bool isPreBoss = level % 5 == 4;
   final blocks = <BlockComponent>[];
   for (int r = 0; r < 3; r++) {
-    blocks.addAll(generateRow(level, dom, r));
+    blocks.addAll(generateRow(level, dom, r, isPreBoss: isPreBoss));
+  }
+  // Guarantee at least one bonus ball block on pre-boss stage
+  if (isPreBoss && !blocks.any((b) => b.type == BlockType.bonus)) {
+    const blockSize = BlockComponent.blockSize;
+    final col = _rng.nextInt(9);
+    blocks.add(BlockComponent(
+      position: Vector2(col * blockSize + 1, 1),
+      type: BlockType.bonus,
+      hp: 0,
+      maxHp: 0,
+      element: dom,
+    ));
   }
   return blocks;
 }
@@ -123,6 +139,7 @@ List<BlockComponent> initBossStage(int level) {
       hp: hp,
       maxHp: hp,
       element: _rng.nextDouble() < 0.5 ? el : ElementType.neutral,
+      goldValue: (level * 2).ceil(),
     );
   }
 
