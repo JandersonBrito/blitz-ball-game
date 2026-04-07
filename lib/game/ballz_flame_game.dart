@@ -105,6 +105,22 @@ class BallzFlameGame extends FlameGame {
     phase = GamePhase.returning;
   }
 
+  void _spawnPowerUpRow() {
+    const powerUpCount = 3;
+    final cols = List.generate(9, (i) => i)..shuffle(Random());
+    final chosen = cols.take(powerUpCount).toList()..sort();
+    for (final c in chosen) {
+      final isTriple = Random().nextBool();
+      blocks.add(BlockComponent(
+        position: Vector2(c * blockSize + 1, topOffset + 1),
+        type: isTriple ? BlockType.triple : BlockType.bonus,
+        hp: 0,
+        maxHp: 0,
+        element: ElementType.neutral,
+      ));
+    }
+  }
+
   void _finishRound() {
     originX = returnTargetX ?? size.x / 2;
     returningBalls.clear();
@@ -140,8 +156,9 @@ class BallzFlameGame extends FlameGame {
       }
       phase = GamePhase.menu;
     } else {
-      // Blocks remain — wave continues, just let player aim again
+      // Blocks remain — wave continues, spawn only power-up blocks at top
       gameState.incrementStageRounds();
+      _spawnPowerUpRow();
       phase = GamePhase.aim;
     }
   }

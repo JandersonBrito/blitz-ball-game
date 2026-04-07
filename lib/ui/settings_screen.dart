@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/app_settings.dart';
 import '../services/settings_service.dart';
+import 'privacy_policy_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   final VoidCallback onBack;
@@ -154,6 +155,34 @@ class SettingsScreen extends StatelessWidget {
           ],
 
           const SizedBox(height: 16),
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => Scaffold(
+                  backgroundColor: const Color(0xFF0a0a14),
+                  body: SafeArea(
+                    child: PrivacyPolicyScreen(
+                      onBack: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                ),
+              ));
+            },
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 4),
+              child: Text(
+                'Política de Privacidade',
+                style: TextStyle(
+                  color: Colors.white24,
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                  decoration: TextDecoration.underline,
+                  decorationColor: Colors.white24,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           TextButton(
             onPressed: onBack,
             child: Text(l.back,

@@ -1,101 +1,94 @@
 import 'package:flutter/widgets.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:unity_ads_plugin/unity_ads_plugin.dart';
 
 class AdService {
   AdService._();
   static final AdService instance = AdService._();
 
-  static const _interstitialId = 'ca-app-pub-4052319139037863/6112867456';
-  static const _rewardedId     = 'ca-app-pub-4052319139037863/9135352704';
-  static const bannerId        = 'ca-app-pub-4052319139037863/5203110463';
+  static const _gameIdAndroid = '6083796';
+  static const _gameIdIos     = '6083797';
 
-  InterstitialAd? _interstitialAd;
-  RewardedAd?     _rewardedAd;
-  BannerAd?       _bannerAd;
+  static const _interstitialPlacement = 'Interstitial_Android';
+  static const _rewardedPlacement     = 'Rewarded_Android';
+  static const _bannerPlacement       = 'Banner_Android';
+
+  bool _rewardedReady = false;
+  bool _interstitialReady = false;
+  UnityBannerAd? _bannerWidget;
 
   Future<void> initialize() async {
-    await MobileAds.instance.initialize();
-    _loadInterstitial();
-    _loadRewarded();
+    await UnityAds.init(
+      gameId: _gameIdAndroid,
+      testMode: true,
+      onComplete: () {
+        _loadInterstitial();
+        _loadRewarded();
+      },
+      onFailed: (error, message) {},
+    );
   }
 
   void _loadInterstitial() {
-    InterstitialAd.load(
-      adUnitId: _interstitialId,
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) {
-          _interstitialAd = ad;
-          _interstitialAd!.setImmersiveMode(true);
-        },
-        onAdFailedToLoad: (_) => _interstitialAd = null,
-      ),
+    UnityAds.load(
+      placementId: _interstitialPlacement,
+      onComplete: (_) => _interstitialReady = true,
+      onFailed: (_, __, ___) => _interstitialReady = false,
     );
   }
 
   void _loadRewarded() {
-    RewardedAd.load(
-      adUnitId: _rewardedId,
-      request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) => _rewardedAd = ad,
-        onAdFailedToLoad: (_) => _rewardedAd = null,
-      ),
+    UnityAds.load(
+      placementId: _rewardedPlacement,
+      onComplete: (_) => _rewardedReady = true,
+      onFailed: (_, __, ___) => _rewardedReady = false,
     );
   }
 
-  bool get isRewardedReady => _rewardedAd != null;
+  bool get isRewardedReady => _rewardedReady;
 
   void showInterstitial() {
-    _interstitialAd?.show();
-    _interstitialAd = null;
-    _loadInterstitial();
+    if (!_interstitialReady) return;
+    _interstitialReady = false;
+    UnityAds.showVideoAd(
+      placementId: _interstitialPlacement,
+      onComplete: (_) => _loadInterstitial(),
+      onFailed: (_, __, ___) => _loadInterstitial(),
+      onSkipped: (_) => _loadInterstitial(),
+    );
   }
 
   void showRewarded(void Function() onRewarded) {
-    if (_rewardedAd == null) return;
-    _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
-      onAdDismissedFullScreenContent: (ad) {
-        ad.dispose();
-        _rewardedAd = null;
+    if (!_rewardedReady) return;
+    _rewardedReady = false;
+    UnityAds.showVideoAd(
+      placementId: _rewardedPlacement,
+      onComplete: (_) {
+        onRewarded();
         _loadRewarded();
       },
-      onAdFailedToShowFullScreenContent: (ad, _) {
-        ad.dispose();
-        _rewardedAd = null;
-        _loadRewarded();
-      },
+      onFailed: (_, __, ___) => _loadRewarded(),
+      onSkipped: (_) => _loadRewarded(),
     );
-    _rewardedAd!.show(onUserEarnedReward: (_, __) => onRewarded());
-    _rewardedAd = null;
   }
 
   Future<void> loadBanner(VoidCallback onLoaded) async {
-    final banner = BannerAd(
-      adUnitId: bannerId,
-      size: AdSize.banner,
-      request: const AdRequest(),
-      listener: BannerAdListener(
-        onAdLoaded: (_) => onLoaded(),
-        onAdFailedToLoad: (ad, _) {
-          ad.dispose();
-          _bannerAd = null;
-        },
-      ),
+    _bannerWidget = UnityBannerAd(
+      placementId: _bannerPlacement,
+      size: BannerSize.standard,
+      onLoad: (_) => onLoaded(),
+      onFailed: (_, __, ___) => _bannerWidget = null,
     );
-    _bannerAd = banner;
-    await banner.load();
+    // Widget precisa estar na árvore para carregar; notifica para montar o widget
+    onLoaded();
   }
 
-  Widget? get bannerWidget =>
-      _bannerAd != null ? AdWidget(ad: _bannerAd!) : null;
+  Widget? get bannerWidget => _bannerWidget;
 
-  double? get bannerWidth => _bannerAd?.size.width.toDouble();
+  double? get bannerWidth => BannerSize.standard.width.toDouble();
 
-  double? get bannerHeight => _bannerAd?.size.height.toDouble();
+  double? get bannerHeight => BannerSize.standard.height.toDouble();
 
   void disposeBanner() {
-    _bannerAd?.dispose();
-    _bannerAd = null;
+    _bannerWidget = null;
   }
 }
