@@ -19,7 +19,7 @@ class AdService {
   Future<void> initialize() async {
     await UnityAds.init(
       gameId: _gameIdAndroid,
-      testMode: true,
+      testMode: false,
       onComplete: () {
         _loadInterstitial();
         _loadRewarded();
