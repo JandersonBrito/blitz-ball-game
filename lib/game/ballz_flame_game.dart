@@ -138,6 +138,11 @@ class BallzFlameGame extends FlameGame {
       return;
     }
 
+    const powerUpTypes = {BlockType.bonus, BlockType.triple, BlockType.elemPower};
+    if (blocks.isNotEmpty && blocks.every((b) => powerUpTypes.contains(b.type))) {
+      blocks.clear();
+    }
+
     if (blocks.isEmpty) {
       // Wave cleared — advance or finish stage
       final lastWave = gameState.waveInStage >= gameState.wavesInStage;
