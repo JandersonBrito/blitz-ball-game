@@ -60,7 +60,7 @@ List<BlockComponent> generateRow(int level, ElementType dominantEl, int rowIndex
     else if (isTriple)  type = BlockType.triple;
 
     final elemPowerEl = isElemPow ? nonNeutralElements[_rng.nextInt(3)] : null;
-    final goldValue   = isGold ? (1 + level * 0.5).ceil() : 0;
+    final goldValue   = isGold ? (1 + level * 0.25).ceil() : 0;
 
     blocks.add(BlockComponent(
       position: Vector2(c * blockSize + 1, rowIndex * blockSize + 1),
@@ -124,7 +124,7 @@ List<BlockComponent> initBossStage(int level) {
       hp: bossHp,
       maxHp: bossHp,
       element: el,
-      goldValue: (level * 8).ceil(),
+      goldValue: (level * 4).ceil(),
       isBoss: true,
     ),
   ];
@@ -139,7 +139,7 @@ List<BlockComponent> initBossStage(int level) {
       hp: hp,
       maxHp: hp,
       element: _rng.nextDouble() < 0.5 ? el : ElementType.neutral,
-      goldValue: (level * 2).ceil(),
+      goldValue: (level * 1).ceil(),
     );
   }
 
