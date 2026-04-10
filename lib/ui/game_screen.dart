@@ -5,6 +5,8 @@ import '../game/ballz_flame_game.dart';
 import '../game/managers/game_state.dart';
 import '../services/settings_service.dart';
 import '../services/ad_service.dart';
+import '../services/consent_service.dart';
+import 'consent_dialog.dart';
 import 'hud_overlay.dart';
 import 'menu_overlay.dart';
 import 'game_over_overlay.dart';
@@ -39,8 +41,21 @@ class _GameScreenState extends State<GameScreen> {
     _gameState = widget.gameState;
     if (_gameState.gameOver) _gameState.reset();
     _flameGame = BallzFlameGame(gameState: _gameState);
-    _loadBanner();
     _gameState.addListener(_onGameStateChange);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkConsent());
+  }
+
+  Future<void> _checkConsent() async {
+    if (!ConsentService.instance.hasBeenAsked) {
+      if (!mounted) return;
+      final consented = await showConsentDialog(context);
+      if (consented) {
+        await AdService.instance.initialize();
+        _loadBanner();
+      }
+    } else {
+      _loadBanner();
+    }
   }
 
   @override

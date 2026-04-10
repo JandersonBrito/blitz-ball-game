@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import '../models/app_settings.dart';
 import '../services/settings_service.dart';
 import '../services/purchase_service.dart';
+import '../services/consent_service.dart';
 import '../game/managers/game_state.dart';
 import 'privacy_policy_screen.dart';
+import 'consent_dialog.dart';
 
 class SettingsScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -227,6 +229,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   decoration: TextDecoration.underline,
                   decorationColor: Colors.white24,
                 ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Consentimento de anúncios
+          GestureDetector(
+            onTap: () async {
+              await showConsentDialog(context);
+              setState(() {});
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  const Text(
+                    'Consentimento de Anúncios: ',
+                    style: TextStyle(
+                      color: Colors.white24,
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                  Text(
+                    ConsentService.instance.hasBeenAsked
+                        ? (ConsentService.instance.consented ? 'Aceito' : 'Recusado')
+                        : 'Não definido',
+                    style: TextStyle(
+                      color: ConsentService.instance.consented
+                          ? const Color(0xFF1D9E75)
+                          : Colors.white38,
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.underline,
+                      decorationColor: Colors.white38,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
