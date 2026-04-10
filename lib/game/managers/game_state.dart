@@ -19,6 +19,7 @@ class GameState extends ChangeNotifier {
   bool showWaveToast = false;
   bool assistActive = false;
   int stageRoundsPlayed = 0;
+  int totalRoundsPlayed = 0;
   ElementType ballElement = ElementType.neutral;
   Map<String, int> upgrades = {for (var u in upgradeDefs) u.id: 0};
 
@@ -33,6 +34,7 @@ class GameState extends ChangeNotifier {
   static const _kGameOver = 'gs_game_over';
   static const _kStageComplete = 'gs_stage_complete';
   static const _kBallElement = 'gs_ball_element';
+  static const _kTotalRounds = 'gs_total_rounds';
 
   static Future<GameState> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -47,6 +49,7 @@ class GameState extends ChangeNotifier {
     gs.wavesInStage = prefs.getInt(_kWavesInStage) ?? 1;
     gs.gameOver = prefs.getBool(_kGameOver) ?? false;
     gs.stageComplete = prefs.getBool(_kStageComplete) ?? false;
+    gs.totalRoundsPlayed = prefs.getInt(_kTotalRounds) ?? 0;
     final elIdx = prefs.getInt(_kBallElement) ?? 0;
     gs.ballElement = ElementType.values[elIdx.clamp(0, ElementType.values.length - 1)];
     for (final u in upgradeDefs) {
@@ -68,6 +71,7 @@ class GameState extends ChangeNotifier {
     await prefs.setBool(_kGameOver, gameOver);
     await prefs.setBool(_kStageComplete, stageComplete);
     await prefs.setInt(_kBallElement, ballElement.index);
+    await prefs.setInt(_kTotalRounds, totalRoundsPlayed);
     for (final entry in upgrades.entries) {
       await prefs.setInt('gs_upg_${entry.key}', entry.value);
     }
@@ -80,6 +84,7 @@ class GameState extends ChangeNotifier {
   }
 
   bool get isBossStage => stage % 5 == 0;
+  bool get isCorridorStage => stage % 3 == 0 && stage % 5 != 0;
 
   int wavesForStage(int s) => ((s - 1) ~/ 10) + 1;
 
@@ -188,6 +193,12 @@ class GameState extends ChangeNotifier {
   void startWave() {
     ballCount = initialBalls;
     notifyListeners();
+  }
+
+  /// Returns true when an interstitial ad should be shown (every 5 rounds).
+  bool incrementTotalRounds() {
+    totalRoundsPlayed++;
+    return totalRoundsPlayed % 5 == 0;
   }
 
   void incrementStageRounds() {

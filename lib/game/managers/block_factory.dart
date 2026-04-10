@@ -8,6 +8,17 @@ final _rng = Random();
 const List<ElementType> allElements = ElementType.values;
 const List<ElementType> nonNeutralElements = [ElementType.fire, ElementType.water, ElementType.wind];
 
+// Wall barrier patterns: columns that WILL have wall blocks.
+// Each pattern leaves 2 gaps (single-column) spread across the 9-column grid.
+const _wallBarrierPatterns = [
+  [0, 1, 2, 4, 5, 6, 8],   // gaps at cols 3 and 7
+  [0, 1, 3, 4, 5, 7, 8],   // gaps at cols 2 and 6
+  [0, 2, 3, 4, 6, 7, 8],   // gaps at cols 1 and 5
+  [1, 2, 3, 5, 6, 7, 8],   // gaps at cols 0 and 4
+  [0, 1, 2, 3, 5, 6, 7, 8], // single gap at col 4 (center)
+  [0, 1, 3, 4, 6, 7, 8],   // gaps at cols 2 and 5
+];
+
 // Layout patterns: lists of columns that WILL have blocks.
 // Each pattern leaves 1-2 intentional corridor gaps for ball navigation.
 const _layoutPatterns = [
@@ -88,6 +99,21 @@ List<BlockComponent> generateRow(int level, ElementType dominantEl, int rowIndex
   return blocks;
 }
 
+List<BlockComponent> generateWallBarrier(int rowIndex, int level) {
+  const blockSize = BlockComponent.blockSize;
+  final pattern = _wallBarrierPatterns[_rng.nextInt(_wallBarrierPatterns.length)];
+  final hp = 1 + (level ~/ 5);
+  // Each barrier row shares the same element
+  final el = nonNeutralElements[_rng.nextInt(nonNeutralElements.length)];
+  return pattern.map((c) => BlockComponent(
+    position: Vector2(c * blockSize + 1, rowIndex * blockSize + 1),
+    type: BlockType.wall,
+    hp: hp,
+    maxHp: hp,
+    element: el,
+  )).toList();
+}
+
 List<BlockComponent> initBlocks(int level) {
   final dom = allElements[_rng.nextInt(allElements.length)];
   final bool isPreBoss = level % 5 == 4;
@@ -107,6 +133,83 @@ List<BlockComponent> initBlocks(int level) {
       element: dom,
     ));
   }
+  // Spawn wall barrier below normal rows from level 3 onwards (40% chance)
+  if (level >= 3 && !isPreBoss && _rng.nextDouble() < 0.40) {
+    blocks.addAll(generateWallBarrier(3, level));
+  }
+  return blocks;
+}
+
+// Maze grid patterns. Each is a 7×9 grid (rows × cols).
+// 0 = empty, 1 = high-HP block, 2 = triple power-up reward
+// Row 0 = top of screen, row 6 = bottom (ball entry). Row 6 must have
+// at least 3 consecutive open cells so the ball can enter.
+const _mazePatternsGrid = [
+  // Pattern A — two side towers, wide center corridor
+  [
+    [1,1,1,0,0,0,1,1,1],  // top: center exit
+    [1,2,1,0,1,0,1,2,1],  // triples at 1,7
+    [1,1,1,0,1,0,1,1,1],
+    [1,1,0,0,1,0,0,1,1],  // corridor widens
+    [1,1,0,1,2,1,0,1,1],  // triple at center 4
+    [1,2,0,0,0,0,0,2,1],  // triples at 1,7; wide open
+    [1,1,0,0,0,0,0,1,1],  // entry: cols 2-6 (5 wide)
+  ],
+  // Pattern B — zigzag left→right
+  [
+    [1,1,0,0,1,1,1,1,1],  // top: exit left
+    [1,0,0,1,1,1,2,1,1],  // triple at 6
+    [1,0,1,1,1,0,0,1,1],
+    [1,1,1,1,0,0,1,1,1],
+    [1,1,1,0,0,1,1,2,1],  // triple at 7
+    [1,2,1,0,0,1,1,1,1],  // triple at 1
+    [1,1,0,0,0,1,1,1,1],  // entry: cols 2-4 (3 wide)
+  ],
+  // Pattern C — right tower + left open corridor
+  [
+    [0,0,1,1,1,1,1,1,1],  // top: exit cols 0-1
+    [0,0,1,2,1,1,2,1,1],  // triples at 3,6
+    [0,1,1,1,1,0,0,1,1],
+    [0,0,1,1,0,0,1,1,1],
+    [0,0,1,0,0,1,1,2,1],  // triple at 7
+    [0,1,1,0,1,1,1,1,1],
+    [0,0,0,0,1,1,1,1,1],  // entry: cols 0-3 (4 wide)
+  ],
+  // Pattern D — symmetric cross, open center base
+  [
+    [1,1,0,0,1,0,0,1,1],  // top: two exits
+    [1,1,0,1,1,1,0,1,1],
+    [0,0,0,1,2,1,0,0,0],  // triple at center
+    [1,1,0,1,1,1,0,1,1],
+    [1,2,0,0,1,0,0,2,1],  // triples at 1,7
+    [1,1,1,0,0,0,1,1,1],
+    [1,1,0,0,0,0,0,1,1],  // entry: cols 2-6 (5 wide)
+  ],
+];
+
+List<BlockComponent> initCorridorStage(int level) {
+  const blockSize = BlockComponent.blockSize;
+  final el = nonNeutralElements[_rng.nextInt(nonNeutralElements.length)];
+  final grid = _mazePatternsGrid[_rng.nextInt(_mazePatternsGrid.length)];
+  // HP scales more gently at low levels: level 3 → 14, level 6 → 23, level 9 → 32
+  final hp = 5 + level * 3;
+  final blocks = <BlockComponent>[];
+
+  for (int r = 0; r < grid.length; r++) {
+    for (int c = 0; c < grid[r].length; c++) {
+      final cell = grid[r][c];
+      if (cell == 0) continue;
+      final isTriple = cell == 2;
+      blocks.add(BlockComponent(
+        position: Vector2(c * blockSize + 1, r * blockSize + 1),
+        type: isTriple ? BlockType.triple : BlockType.normal,
+        hp: isTriple ? 0 : hp,
+        maxHp: isTriple ? 0 : hp,
+        element: isTriple ? ElementType.neutral : el,
+      ));
+    }
+  }
+
   return blocks;
 }
 

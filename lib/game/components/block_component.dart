@@ -5,7 +5,7 @@ import 'package:flame/collisions.dart';
 import 'package:flutter/material.dart' show Colors, Color, Paint, PaintingStyle, TextSpan, TextPainter, TextStyle, TextAlign, TextDirection;
 import '../../models/element.dart';
 
-enum BlockType { normal, bonus, gold, elemPower, triple, boss }
+enum BlockType { normal, bonus, gold, elemPower, triple, boss, wall }
 
 class BlockComponent extends PositionComponent with CollisionCallbacks {
   final BlockType type;
@@ -84,6 +84,11 @@ class BlockComponent extends PositionComponent with CollisionCallbacks {
 
   @override
   void render(Canvas canvas) {
+    if (type == BlockType.wall) {
+      _renderWall(canvas);
+      return;
+    }
+
     final w = size.x, h = size.y;
     final rect = RRect.fromRectAndRadius(
       Rect.fromLTWH(2, 2, w - 4, h - 4),
@@ -170,6 +175,90 @@ class BlockComponent extends PositionComponent with CollisionCallbacks {
           }
         }
         break;
+      case BlockType.wall:
+        // Handled by _renderWall — never reaches here
+        break;
+    }
+  }
+
+  void _renderWall(Canvas canvas) {
+    final w = size.x, h = size.y;
+    final ratio = maxHp > 0 ? hp / maxHp : 1.0;
+    final rect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(2, 2, w - 4, h - 4),
+      const Radius.circular(4),
+    );
+
+    // Background — darkens as hp drops
+    final bgColor = Color.lerp(const Color(0xFF0D1220), const Color(0xFF1A2238), ratio)!;
+    canvas.drawRRect(rect, Paint()..color = bgColor);
+
+    // Diagonal hatching
+    canvas.save();
+    canvas.clipRRect(rect);
+    final stripeAlpha = (0x25 + (0x10 * ratio)).toInt().clamp(0, 255);
+    final stripePaint = Paint()
+      ..color = Color.fromARGB(stripeAlpha, 0x40, 0x60, 0x90)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+    for (double s = -h; s < w + h; s += 7) {
+      canvas.drawLine(Offset(s + 2, 2), Offset(s + h - 2, h - 2), stripePaint);
+    }
+    canvas.restore();
+
+    // Element-colored border (or metallic if neutral), fades darker as hp drops
+    final baseColor = element != ElementType.neutral
+        ? elementDataMap[element]!.blockBorder
+        : const Color(0xFF4D6A9A);
+    final borderColor = Color.lerp(baseColor.withValues(alpha: 0.4), baseColor, ratio)!;
+    canvas.drawRRect(rect, Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0);
+
+    // Orange bottom stripe — front face indicator
+    canvas.drawLine(
+      Offset(5, h - 5),
+      Offset(w - 5, h - 5),
+      Paint()
+        ..color = const Color(0xFFFF8C00)
+        ..strokeWidth = 2.5
+        ..style = PaintingStyle.stroke,
+    );
+
+    // Element icon (top-right corner)
+    if (element != ElementType.neutral) {
+      _drawText(canvas, elementDataMap[element]!.icon, Offset(w - 6, 7), 9, Colors.white70);
+    }
+
+    // Durability dots (one per maxHp, filled = remaining)
+    if (maxHp > 1) {
+      const dotR = 2.5;
+      final spacing = min(7.0, (w - 12) / maxHp);
+      final totalW = spacing * (maxHp - 1) + dotR * 2;
+      double dx = (w - totalW) / 2 + dotR;
+      for (int i = 0; i < maxHp; i++) {
+        final filled = i < hp;
+        canvas.drawCircle(
+          Offset(dx, h / 2 - 1),
+          dotR,
+          Paint()..color = filled ? const Color(0xFF7799CC) : const Color(0xFF2A3550),
+        );
+        if (filled) {
+          canvas.drawCircle(
+            Offset(dx, h / 2 - 1),
+            dotR,
+            Paint()
+              ..color = const Color(0xFF4D6A9A)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 0.8,
+          );
+        }
+        dx += spacing;
+      }
+    } else {
+      // Single hit — just show down arrow
+      _drawText(canvas, '▼', Offset(w / 2, h / 2 - 1), 11, const Color(0xFF7799CC));
     }
   }
 

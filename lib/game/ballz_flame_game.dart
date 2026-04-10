@@ -9,6 +9,7 @@ import 'components/ball_component.dart';
 import 'managers/game_state.dart';
 import 'managers/block_factory.dart';
 import '../models/element.dart';
+import '../services/ad_service_mobile.dart';
 
 enum GamePhase { menu, aim, shooting, returning, gameOver, stageComplete }
 
@@ -56,10 +57,13 @@ class BallzFlameGame extends FlameGame {
 
   void _loadBlocks() {
     blocks.clear();
-    final isBoss = gameState.isBossStage;
+    final isBoss = gameState.isBossStage && gameState.waveInStage == gameState.wavesInStage;
+    final isCorridor = gameState.isCorridorStage && gameState.waveInStage == 1;
     final newBlocks = isBoss
         ? initBossStage(gameState.stage)
-        : initBlocks(gameState.stage);
+        : isCorridor
+            ? initCorridorStage(gameState.stage)
+            : initBlocks(gameState.stage);
     for (final b in newBlocks) b.position.y += topOffset;
     blocks.addAll(newBlocks);
   }
@@ -126,6 +130,11 @@ class BallzFlameGame extends FlameGame {
     returningBalls.clear();
     landed = 0; firstLandX = null; returnTargetX = null;
 
+    // interstitial ad every 5 rounds
+    if (gameState.incrementTotalRounds()) {
+      AdService.instance.showInterstitial();
+    }
+
     // descend blocks
     for (final b in blocks) {
       b.position.y += blockSize;
@@ -138,8 +147,8 @@ class BallzFlameGame extends FlameGame {
       return;
     }
 
-    const powerUpTypes = {BlockType.bonus, BlockType.triple, BlockType.elemPower};
-    if (blocks.isNotEmpty && blocks.every((b) => powerUpTypes.contains(b.type))) {
+    const clearableTypes = {BlockType.bonus, BlockType.triple, BlockType.elemPower, BlockType.wall};
+    if (blocks.isNotEmpty && blocks.every((b) => clearableTypes.contains(b.type))) {
       blocks.clear();
     }
 
@@ -158,6 +167,13 @@ class BallzFlameGame extends FlameGame {
         final newRow = generateRow(gameState.stage, dom, r);
         for (final b in newRow) b.position.y += topOffset;
         blocks.addAll(newRow);
+      }
+      // Wall barrier — same 40% chance as the first wave (skip on last wave since it's boss)
+      final isLastWave = gameState.waveInStage >= gameState.wavesInStage;
+      if (gameState.stage >= 3 && !isLastWave && Random().nextDouble() < 0.40) {
+        final wallRow = generateWallBarrier(3, gameState.stage);
+        for (final b in wallRow) b.position.y += topOffset;
+        blocks.addAll(wallRow);
       }
       phase = GamePhase.menu;
     } else {
@@ -322,6 +338,47 @@ class BallzFlameGame extends FlameGame {
             for (final s in shotQueue) s.el = block.elemPowerEl!;
           }
           blocks.removeAt(bi);
+          break;
+
+        case BlockType.wall:
+          // Determine which face was hit
+          final wOverlapX = min((ball.position.x - bLeft).abs(), (ball.position.x - bRight).abs());
+          final wOverlapY = min((ball.position.y - bTop).abs(),  (ball.position.y - bBottom).abs());
+          final hitFromBack = wOverlapY <= wOverlapX && ball.position.y < (bTop + bBottom) / 2;
+          if (hitFromBack) {
+            // Wall element check: only the counter-element destroys it
+            // fire←water, water←wind, wind←fire  (mult > 1.0 = effective)
+            final canDamage = block.element == ElementType.neutral ||
+                getElementMult(ball.element, block.element) > 1.0;
+            if (canDamage) {
+              block.takeDamage(1);
+              block.triggerShake();
+              if (!block.isAlive) {
+                blocks.removeAt(bi);
+                gameState.addScore(10);
+              } else {
+                ball.velocity.y = -ball.velocity.y;
+                ball.position.y = bTop - ballRadius - 1;
+              }
+            } else {
+              // Wrong element — reflects like the front face
+              ball.velocity.y = -ball.velocity.y;
+              ball.position.y = bTop - ballRadius - 1;
+            }
+          } else {
+            // Front or sides — reflect without damage
+            if (wOverlapX < wOverlapY) {
+              ball.velocity.x = -ball.velocity.x;
+              ball.position.x = ball.position.x < (bLeft + bRight) / 2
+                  ? bLeft - ballRadius - 1
+                  : bRight + ballRadius + 1;
+            } else {
+              ball.velocity.y = -ball.velocity.y;
+              ball.position.y = ball.position.y < (bTop + bBottom) / 2
+                  ? bTop - ballRadius - 1
+                  : bBottom + ballRadius + 1;
+            }
+          }
           break;
 
         default:

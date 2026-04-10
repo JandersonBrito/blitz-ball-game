@@ -156,7 +156,10 @@ class _GameScreenState extends State<GameScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xFF0a0a14),
         body: SafeArea(
-          child: Column(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
             children: [
               // ── Área de jogo ─────────────────────────────────────────────
               Expanded(
@@ -363,6 +366,8 @@ class _GameScreenState extends State<GameScreen> {
                   child: bannerWidget,
                 ),
             ],
+          ),
+            ),
           ),
         ),
       ),
