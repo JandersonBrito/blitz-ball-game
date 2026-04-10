@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/widgets.dart';
 import 'package:unity_ads_plugin/unity_ads_plugin.dart';
 import 'purchase_service.dart';
@@ -9,9 +10,13 @@ class AdService {
   static const _gameIdAndroid = '6083796';
   static const _gameIdIos     = '6083797';
 
-  static const _interstitialPlacement = 'Interstitial_Android';
-  static const _rewardedPlacement     = 'Rewarded_Android';
-  static const _bannerPlacement       = 'Banner_Android';
+  static bool get _isIos => defaultTargetPlatform == TargetPlatform.iOS;
+
+  static String get _gameId => _isIos ? _gameIdIos : _gameIdAndroid;
+
+  static String get _interstitialPlacement => _isIos ? 'Interstitial_iOS' : 'Interstitial_Android';
+  static String get _rewardedPlacement     => _isIos ? 'Rewarded_iOS'     : 'Rewarded_Android';
+  static String get _bannerPlacement       => _isIos ? 'Banner_iOS'       : 'Banner_Android';
 
   bool _rewardedReady = false;
   bool _interstitialReady = false;
@@ -19,7 +24,7 @@ class AdService {
 
   Future<void> initialize() async {
     await UnityAds.init(
-      gameId: _gameIdAndroid,
+      gameId: _gameId,
       testMode: false,
       onComplete: () {
         _loadInterstitial();
