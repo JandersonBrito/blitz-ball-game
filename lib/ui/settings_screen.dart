@@ -5,6 +5,7 @@ import '../models/app_settings.dart';
 import '../services/settings_service.dart';
 import '../services/purchase_service.dart';
 import '../services/consent_service.dart';
+import '../services/games_cloud_service.dart';
 import '../game/managers/game_state.dart';
 import 'privacy_policy_screen.dart';
 import 'consent_dialog.dart';
@@ -23,10 +24,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _restoreError;
   bool _showRestoreField = false;
 
+  bool _cloudSaving = false;
+  bool _cloudRestoring = false;
+  String? _cloudFeedback;
+  bool _cloudFeedbackIsError = false;
+
   @override
   void dispose() {
     _restoreController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleCloudSignIn() async {
+    final ok = await GamesCloudService.instance.signIn();
+    if (!mounted) return;
+    _showCloudFeedback(
+      ok ? 'Conectado ao Google Play Games!' : 'Falha ao conectar. Tente novamente.',
+      isError: !ok,
+    );
+  }
+
+  Future<void> _handleCloudSave() async {
+    if (!GamesCloudService.instance.signedIn) return;
+    setState(() => _cloudSaving = true);
+    final code = widget.gameState.exportBackupCode();
+    final ok = await GamesCloudService.instance.saveToCloud(code);
+    if (!mounted) return;
+    setState(() => _cloudSaving = false);
+    _showCloudFeedback(
+      ok ? 'Progresso salvo na nuvem!' : 'Erro ao salvar: ${GamesCloudService.instance.lastError}',
+      isError: !ok,
+    );
+  }
+
+  Future<void> _handleCloudRestore() async {
+    if (!GamesCloudService.instance.signedIn) return;
+    setState(() => _cloudRestoring = true);
+    final code = await GamesCloudService.instance.loadFromCloud();
+    if (!mounted) return;
+    setState(() => _cloudRestoring = false);
+    if (code == null) {
+      _showCloudFeedback(
+        GamesCloudService.instance.lastError ?? 'Nenhum save encontrado na nuvem.',
+        isError: true,
+      );
+      return;
+    }
+    final applied = widget.gameState.applyBackupCode(code);
+    _showCloudFeedback(
+      applied ? 'Progresso restaurado da nuvem!' : 'Dados inválidos no save da nuvem.',
+      isError: !applied,
+    );
+  }
+
+  void _showCloudFeedback(String message, {required bool isError}) {
+    setState(() {
+      _cloudFeedback = message;
+      _cloudFeedbackIsError = isError;
+    });
+    Future.delayed(const Duration(seconds: 4), () {
+      if (mounted) setState(() => _cloudFeedback = null);
+    });
   }
 
   void _copyBackup() {
@@ -327,6 +385,112 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ],
+
+          const SizedBox(height: 20),
+
+          // ── Save na Nuvem ─────────────────────────────────────────────
+          Text('SAVE NA NUVEM',
+              style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 10,
+                  letterSpacing: 1,
+                  fontFamily: 'monospace')),
+          const SizedBox(height: 8),
+          Builder(builder: (context) {
+            final cloud = context.watch<GamesCloudService>();
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!cloud.signedIn)
+                  GestureDetector(
+                    onTap: _handleCloudSignIn,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.white24),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Entrar no Google Play Games',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.white54,
+                            fontSize: 11,
+                            fontFamily: 'monospace'),
+                      ),
+                    ),
+                  ),
+                if (cloud.signedIn) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: _cloudSaving ? null : _handleCloudSave,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.white24),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              _cloudSaving ? 'Salvando...' : 'Salvar na Nuvem',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11,
+                                  fontFamily: 'monospace'),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: _cloudRestoring ? null : _handleCloudRestore,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.white24),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              _cloudRestoring ? 'Restaurando...' : 'Restaurar da Nuvem',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11,
+                                  fontFamily: 'monospace'),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    '✓ Conectado ao Google Play Games',
+                    style: TextStyle(
+                        color: Color(0xFF1D9E75),
+                        fontSize: 10,
+                        fontFamily: 'monospace'),
+                  ),
+                ],
+                if (_cloudFeedback != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    _cloudFeedback!,
+                    style: TextStyle(
+                        color: _cloudFeedbackIsError
+                            ? Colors.redAccent
+                            : const Color(0xFF1D9E75),
+                        fontSize: 10,
+                        fontFamily: 'monospace'),
+                  ),
+                ],
+              ],
+            );
+          }),
 
           const SizedBox(height: 20),
 

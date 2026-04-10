@@ -5,6 +5,7 @@ import 'services/settings_service.dart';
 import 'services/ad_service.dart';
 import 'services/purchase_service.dart';
 import 'services/consent_service.dart';
+import 'services/games_cloud_service.dart';
 import 'game/managers/game_state.dart';
 import 'ui/game_screen.dart';
 import 'ui/consent_dialog.dart';
@@ -13,6 +14,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ConsentService.instance.load();
   await PurchaseService.instance.initialize();
+  await GamesCloudService.instance.initialize();
   // Ads inicializados apenas se consentimento já foi dado.
   // Novo usuário: diálogo será mostrado em GameScreen antes de inicializar.
   if (ConsentService.instance.hasBeenAsked && ConsentService.instance.consented) {
@@ -44,6 +46,7 @@ class BallzApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider.value(value: settings),
         ChangeNotifierProvider.value(value: PurchaseService.instance),
+        ChangeNotifierProvider.value(value: GamesCloudService.instance),
       ],
       child: MaterialApp(
         title: 'Ballz',
