@@ -196,10 +196,10 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Returns true when an interstitial ad should be shown (every 5 rounds).
+  /// Returns true when an interstitial ad should be shown (every 10 rounds).
   bool incrementTotalRounds() {
     totalRoundsPlayed++;
-    return totalRoundsPlayed % 5 == 0;
+    return totalRoundsPlayed % 10 == 0;
   }
 
   void incrementStageRounds() {
