@@ -1,16 +1,64 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/app_settings.dart';
 import '../services/settings_service.dart';
+import '../services/purchase_service.dart';
+import '../game/managers/game_state.dart';
 import 'privacy_policy_screen.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   final VoidCallback onBack;
-  const SettingsScreen({super.key, required this.onBack});
+  final GameState gameState;
+  const SettingsScreen({super.key, required this.onBack, required this.gameState});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final _restoreController = TextEditingController();
+  String? _restoreError;
+  bool _showRestoreField = false;
+
+  @override
+  void dispose() {
+    _restoreController.dispose();
+    super.dispose();
+  }
+
+  void _copyBackup() {
+    final code = widget.gameState.exportBackupCode();
+    Clipboard.setData(ClipboardData(text: code));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Código copiado! Cole em outro aparelho para restaurar.'),
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _applyRestore() {
+    final code = _restoreController.text.trim();
+    final ok = widget.gameState.applyBackupCode(code);
+    setState(() {
+      _restoreError = ok ? null : 'Código inválido. Verifique e tente novamente.';
+      if (ok) {
+        _showRestoreField = false;
+        _restoreController.clear();
+      }
+    });
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Progresso restaurado com sucesso!')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsService>();
+    final purchase = context.watch<PurchaseService>();
     final l = settings.l10n;
 
     return Padding(
@@ -30,7 +78,7 @@ class SettingsScreen extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       fontFamily: 'monospace')),
               GestureDetector(
-                onTap: onBack,
+                onTap: widget.onBack,
                 child: const Text('✕',
                     style: TextStyle(color: Colors.white54, fontSize: 18)),
               ),
@@ -182,9 +230,160 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: 16),
+
+          // ── Remover Anúncios ──────────────────────────────────────────
+          Text('COMPRAS',
+              style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 10,
+                  letterSpacing: 1,
+                  fontFamily: 'monospace')),
+          const SizedBox(height: 8),
+          if (purchase.adsRemoved)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 6),
+              child: Text(
+                '✓ Anúncios removidos',
+                style: TextStyle(
+                    color: Color(0xFF1D9E75),
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.bold),
+              ),
+            )
+          else ...[
+            GestureDetector(
+              onTap: purchase.purchasing ? null : () => purchase.buyRemoveAds(),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF9F27).withValues(alpha: 0.15),
+                  border: Border.all(color: const Color(0xFFEF9F27)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  purchase.purchasing ? 'Aguardando...' : 'Remover Anúncios',
+                  style: const TextStyle(
+                      color: Color(0xFFEF9F27),
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            GestureDetector(
+              onTap: () => purchase.restorePurchases(),
+              child: const Text(
+                'Restaurar compra anterior',
+                style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 10,
+                    fontFamily: 'monospace',
+                    decoration: TextDecoration.underline,
+                    decorationColor: Colors.white38),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 20),
+
+          // ── Backup / Restore ──────────────────────────────────────────
+          Text('BACKUP DE PROGRESSO',
+              style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 10,
+                  letterSpacing: 1,
+                  fontFamily: 'monospace')),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: _copyBackup,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white24),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'Copiar Código',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontFamily: 'monospace'),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _showRestoreField = !_showRestoreField),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white24),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'Restaurar',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontFamily: 'monospace'),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (_showRestoreField) ...[
+            const SizedBox(height: 10),
+            TextField(
+              controller: _restoreController,
+              style: const TextStyle(color: Colors.white, fontSize: 11, fontFamily: 'monospace'),
+              decoration: InputDecoration(
+                hintText: 'Cole o código aqui',
+                hintStyle: const TextStyle(color: Colors.white24, fontSize: 11),
+                filled: true,
+                fillColor: Colors.white10,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none),
+                errorText: _restoreError,
+              ),
+            ),
+            const SizedBox(height: 6),
+            GestureDetector(
+              onTap: _applyRestore,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1D9E75).withValues(alpha: 0.15),
+                  border: Border.all(color: const Color(0xFF1D9E75)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'Confirmar Restauração',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: Color(0xFF1D9E75),
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+
           const SizedBox(height: 8),
           TextButton(
-            onPressed: onBack,
+            onPressed: widget.onBack,
             child: Text(l.back,
                 style: const TextStyle(
                     color: Colors.white54, fontFamily: 'monospace')),

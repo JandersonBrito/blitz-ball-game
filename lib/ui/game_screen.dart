@@ -223,6 +223,7 @@ class _GameScreenState extends State<GameScreen> {
                                 ? SettingsScreen(
                                     onBack: () => setState(
                                         () => _showPauseSettings = false),
+                                    gameState: _gameState,
                                   )
                                 : Column(
                                     mainAxisSize: MainAxisSize.min,

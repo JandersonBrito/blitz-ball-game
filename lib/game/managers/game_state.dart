@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -254,6 +255,52 @@ class GameState extends ChangeNotifier {
     ballCount = initialBalls;
     // mantém: gold, upgrades, level, stage, wave, waveInStage, wavesInStage
     notifyListeners();
+  }
+
+  /// Exports the current progress as a base64 string the user can copy.
+  String exportBackupCode() {
+    final data = {
+      'score': score,
+      'gold': gold,
+      'ballCount': ballCount,
+      'level': level,
+      'wave': wave,
+      'stage': stage,
+      'waveInStage': waveInStage,
+      'wavesInStage': wavesInStage,
+      'ballElement': ballElement.index,
+      'totalRoundsPlayed': totalRoundsPlayed,
+      'upgrades': {for (final e in upgrades.entries) e.key: e.value},
+    };
+    return base64Encode(utf8.encode(jsonEncode(data)));
+  }
+
+  /// Applies a backup code exported by [exportBackupCode]. Returns true on success.
+  bool applyBackupCode(String code) {
+    try {
+      final json = jsonDecode(utf8.decode(base64Decode(code))) as Map<String, dynamic>;
+      score         = json['score']          as int? ?? score;
+      gold          = json['gold']           as int? ?? gold;
+      ballCount     = json['ballCount']      as int? ?? ballCount;
+      level         = json['level']          as int? ?? level;
+      wave          = json['wave']           as int? ?? wave;
+      stage         = json['stage']          as int? ?? stage;
+      waveInStage   = json['waveInStage']    as int? ?? waveInStage;
+      wavesInStage  = json['wavesInStage']   as int? ?? wavesInStage;
+      totalRoundsPlayed = json['totalRoundsPlayed'] as int? ?? totalRoundsPlayed;
+      final elIdx = json['ballElement'] as int? ?? 0;
+      ballElement = ElementType.values[elIdx.clamp(0, ElementType.values.length - 1)];
+      final upgs = json['upgrades'] as Map<String, dynamic>?;
+      if (upgs != null) {
+        for (final e in upgs.entries) {
+          if (upgrades.containsKey(e.key)) upgrades[e.key] = e.value as int;
+        }
+      }
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> fullReset() async {

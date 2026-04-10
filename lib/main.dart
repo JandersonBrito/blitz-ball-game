@@ -3,11 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'services/settings_service.dart';
 import 'services/ad_service.dart';
+import 'services/purchase_service.dart';
 import 'game/managers/game_state.dart';
 import 'ui/game_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await PurchaseService.instance.initialize();
   await AdService.instance.initialize();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -31,8 +33,11 @@ class BallzApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: settings,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: settings),
+        ChangeNotifierProvider.value(value: PurchaseService.instance),
+      ],
       child: MaterialApp(
         title: 'Ballz',
         debugShowCheckedModeBanner: false,

@@ -44,7 +44,7 @@ class _MenuOverlayState extends State<MenuOverlay> {
       color: const Color(0xEE0A0A14),
       child: Center(
         child: _showSettings
-            ? SettingsScreen(onBack: () => setState(() => _showSettings = false))
+            ? SettingsScreen(onBack: () => setState(() => _showSettings = false), gameState: state)
             : _showUpgrades
                 ? UpgradeScreen(onBack: () => setState(() => _showUpgrades = false))
                 : _showTutorial

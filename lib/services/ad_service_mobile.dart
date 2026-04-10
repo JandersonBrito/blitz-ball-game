@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:unity_ads_plugin/unity_ads_plugin.dart';
+import 'purchase_service.dart';
 
 class AdService {
   AdService._();
@@ -46,8 +47,10 @@ class AdService {
 
   bool get isRewardedReady => _rewardedReady;
 
+  bool get _adsRemoved => PurchaseService.instance.adsRemoved;
+
   void showInterstitial() {
-    if (!_interstitialReady) return;
+    if (_adsRemoved || !_interstitialReady) return;
     _interstitialReady = false;
     UnityAds.showVideoAd(
       placementId: _interstitialPlacement,
@@ -58,7 +61,7 @@ class AdService {
   }
 
   void showRewarded(void Function() onRewarded) {
-    if (!_rewardedReady) return;
+    if (_adsRemoved || !_rewardedReady) return;
     _rewardedReady = false;
     UnityAds.showVideoAd(
       placementId: _rewardedPlacement,
@@ -72,6 +75,7 @@ class AdService {
   }
 
   Future<void> loadBanner(VoidCallback onLoaded) async {
+    if (_adsRemoved) return;
     _bannerWidget = UnityBannerAd(
       placementId: _bannerPlacement,
       size: BannerSize.standard,
