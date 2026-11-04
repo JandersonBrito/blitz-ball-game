@@ -17,6 +17,8 @@ class GameState extends ChangeNotifier {
   bool gameOver = false;
   bool stageComplete = false;
   bool showHelpOffer = false;
+  bool helpOfferDismissed = false;
+  bool freeContinueUsed = false;
   bool showWaveToast = false;
   bool assistActive = false;
   int stageRoundsPlayed = 0;
@@ -36,6 +38,7 @@ class GameState extends ChangeNotifier {
   static const _kStageComplete = 'gs_stage_complete';
   static const _kBallElement = 'gs_ball_element';
   static const _kTotalRounds = 'gs_total_rounds';
+  static const _kFreeContinueUsed = 'gs_free_continue_used';
 
   static Future<GameState> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -51,6 +54,7 @@ class GameState extends ChangeNotifier {
     gs.gameOver = prefs.getBool(_kGameOver) ?? false;
     gs.stageComplete = prefs.getBool(_kStageComplete) ?? false;
     gs.totalRoundsPlayed = prefs.getInt(_kTotalRounds) ?? 0;
+    gs.freeContinueUsed = prefs.getBool(_kFreeContinueUsed) ?? false;
     final elIdx = prefs.getInt(_kBallElement) ?? 0;
     gs.ballElement = ElementType.values[elIdx.clamp(0, ElementType.values.length - 1)];
     for (final u in upgradeDefs) {
@@ -73,6 +77,7 @@ class GameState extends ChangeNotifier {
     await prefs.setBool(_kStageComplete, stageComplete);
     await prefs.setInt(_kBallElement, ballElement.index);
     await prefs.setInt(_kTotalRounds, totalRoundsPlayed);
+    await prefs.setBool(_kFreeContinueUsed, freeContinueUsed);
     for (final entry in upgrades.entries) {
       await prefs.setInt('gs_upg_${entry.key}', entry.value);
     }
@@ -169,6 +174,7 @@ class GameState extends ChangeNotifier {
     waveInStage = 1;
     wavesInStage = wavesForStage(stage);
     assistActive = false;
+    helpOfferDismissed = false;
     stageRoundsPlayed = 0;
     notifyListeners();
   }
@@ -205,7 +211,7 @@ class GameState extends ChangeNotifier {
   void incrementStageRounds() {
     stageRoundsPlayed++;
     final threshold = isBossStage ? 3 : 7;
-    if (stageRoundsPlayed >= threshold && !assistActive) {
+    if (stageRoundsPlayed >= threshold && !assistActive && !helpOfferDismissed) {
       showHelpOffer = true;
       notifyListeners();
     }
@@ -221,6 +227,7 @@ class GameState extends ChangeNotifier {
 
   void dismissHelpOffer() {
     showHelpOffer = false;
+    helpOfferDismissed = true;
     stageRoundsPlayed = 0;
     notifyListeners();
   }
@@ -251,6 +258,7 @@ class GameState extends ChangeNotifier {
     score = 0;
     gameOver = false;
     stageComplete = false;
+    freeContinueUsed = false;
     ballElement = ElementType.neutral;
     ballCount = initialBalls;
     // mantém: gold, upgrades, level, stage, wave, waveInStage, wavesInStage
@@ -314,6 +322,8 @@ class GameState extends ChangeNotifier {
     wavesInStage = wavesForStage(1);
     gameOver = false;
     stageComplete = false;
+    helpOfferDismissed = false;
+    freeContinueUsed = false;
     ballElement = ElementType.neutral;
     upgrades = {for (var u in upgradeDefs) u.id: 0};
     notifyListeners();

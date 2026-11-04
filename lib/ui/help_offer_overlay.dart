@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/purchase_service.dart';
 
 class HelpOfferOverlay extends StatelessWidget {
   final VoidCallback? onWatchAd; // null quando ad não está disponível
@@ -12,6 +14,7 @@ class HelpOfferOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final adsRemoved = context.watch<PurchaseService>().adsRemoved;
     return Container(
       color: const Color(0xE80A0A14),
       child: Center(
@@ -36,10 +39,12 @@ class HelpOfferOverlay extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Você está nesta fase há um tempo.\nAssista um anúncio e receba:',
+              Text(
+                adsRemoved
+                    ? 'Você está nesta fase há um tempo.\nAceite a ajuda e receba:'
+                    : 'Você está nesta fase há um tempo.\nAssista um anúncio e receba:',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white54,
                   fontSize: 12,
                   fontFamily: 'monospace',
@@ -58,9 +63,9 @@ class HelpOfferOverlay extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: onWatchAd,
                     icon: const Text('▶', style: TextStyle(fontSize: 14)),
-                    label: const Text(
-                      'Assistir anúncio',
-                      style: TextStyle(
+                    label: Text(
+                      adsRemoved ? 'Aceitar ajuda' : 'Assistir anúncio',
+                      style: const TextStyle(
                         fontFamily: 'monospace',
                         fontWeight: FontWeight.bold,
                       ),

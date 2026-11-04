@@ -6,6 +6,7 @@ import '../game/managers/game_state.dart';
 import '../services/settings_service.dart';
 import '../services/ad_service.dart';
 import '../services/consent_service.dart';
+import '../services/purchase_service.dart';
 import 'consent_dialog.dart';
 import 'hud_overlay.dart';
 import 'menu_overlay.dart';
@@ -104,10 +105,16 @@ class _GameScreenState extends State<GameScreen> {
 
   void _handleContinueAfterAd() {
     AdService.instance.showRewarded(() {
+      if (PurchaseService.instance.adsRemoved) _gameState.freeContinueUsed = true;
       _flameGame.continueAfterAd();
       setState(() {});
     });
   }
+
+  /// Quem comprou "Remover Anúncios" continua sem vídeo, uma vez por partida.
+  bool get _canContinueAfterAd =>
+      AdService.instance.isRewardedReady &&
+      !(PurchaseService.instance.adsRemoved && _gameState.freeContinueUsed);
 
   void _handleHelpOfferAccepted() {
     AdService.instance.showRewarded(() {
@@ -365,7 +372,7 @@ class _GameScreenState extends State<GameScreen> {
                         return Positioned.fill(
                           child: GameOverOverlay(
                             onRestart: _handleRestart,
-                            onWatchAd: AdService.instance.isRewardedReady
+                            onWatchAd: _canContinueAfterAd
                                 ? _handleContinueAfterAd
                                 : null,
                           ),

@@ -130,7 +130,7 @@ class BallzFlameGame extends FlameGame {
     returningBalls.clear();
     landed = 0; firstLandX = null; returnTargetX = null;
 
-    // interstitial ad every 5 rounds
+    // interstitial ad every 10 rounds, if AdService's time limits allow it
     if (gameState.incrementTotalRounds()) {
       AdService.instance.showInterstitial();
     }

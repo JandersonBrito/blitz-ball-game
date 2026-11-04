@@ -19,12 +19,25 @@ class AdService extends ChangeNotifier {
   static String get _rewardedPlacement     => _isIos ? 'Rewarded_iOS'     : 'Rewarded_Android';
   static String get _bannerPlacement       => _isIos ? 'Banner_iOS'       : 'Banner_Android';
 
+  static const _sessionGracePeriod = Duration(minutes: 3);
+  static const _interstitialCooldown = Duration(minutes: 4);
+
   bool _rewardedReady = false;
   bool _interstitialReady = false;
   bool _initStarted = false;
   UnityBannerAd? _bannerWidget;
+  final DateTime _sessionStart = DateTime.now();
+  DateTime? _lastAdShownAt;
 
   bool get _consented => ConsentService.instance.consented;
+
+  /// Vale para todo intersticial; vídeos premiados também reiniciam o intervalo.
+  bool get _interstitialAllowed {
+    final now = DateTime.now();
+    if (now.difference(_sessionStart) < _sessionGracePeriod) return false;
+    final last = _lastAdShownAt;
+    return last == null || now.difference(last) >= _interstitialCooldown;
+  }
 
   Future<void> initialize() async {
     await _syncPrivacyConsent();
@@ -86,15 +99,17 @@ class AdService extends ChangeNotifier {
     );
   }
 
-  bool get isRewardedReady => _consented && _rewardedReady;
+  /// Quem comprou "Remover Anúncios" recebe a recompensa sem assistir ao vídeo.
+  bool get isRewardedReady => _adsRemoved || (_consented && _rewardedReady);
 
   bool get _adsRemoved => PurchaseService.instance.adsRemoved;
 
   void showInterstitial() {
-    if (_adsRemoved || !_consented || !_interstitialReady) return;
+    if (_adsRemoved || !_consented || !_interstitialAllowed || !_interstitialReady) return;
     _interstitialReady = false;
     UnityAds.showVideoAd(
       placementId: _interstitialPlacement,
+      onStart: (_) => _lastAdShownAt = DateTime.now(),
       onComplete: (_) => _loadInterstitial(),
       onFailed: (_, __, ___) => _loadInterstitial(),
       onSkipped: (_) => _loadInterstitial(),
@@ -102,10 +117,15 @@ class AdService extends ChangeNotifier {
   }
 
   void showRewarded(void Function() onRewarded) {
-    if (_adsRemoved || !_consented || !_rewardedReady) return;
+    if (_adsRemoved) {
+      onRewarded();
+      return;
+    }
+    if (!_consented || !_rewardedReady) return;
     _rewardedReady = false;
     UnityAds.showVideoAd(
       placementId: _rewardedPlacement,
+      onStart: (_) => _lastAdShownAt = DateTime.now(),
       onComplete: (_) {
         onRewarded();
         _loadRewarded();
