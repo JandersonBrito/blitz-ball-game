@@ -178,7 +178,7 @@ class BallzFlameGame extends FlameGame {
       phase = GamePhase.menu;
     } else {
       // Blocks remain — wave continues, spawn only power-up blocks at top
-      gameState.incrementStageRounds();
+      gameState.incrementStageRounds(canOfferHelp: AdService.instance.isRewardedReady);
       _spawnPowerUpRow();
       phase = GamePhase.aim;
     }

@@ -44,6 +44,7 @@ class _GameScreenState extends State<GameScreen> {
     _flameGame = BallzFlameGame(gameState: _gameState);
     _gameState.addListener(_onGameStateChange);
     AdService.instance.addListener(_onAdsChange);
+    PurchaseService.instance.addListener(_onAdsChange);
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkConsent());
   }
 
@@ -60,6 +61,7 @@ class _GameScreenState extends State<GameScreen> {
   void dispose() {
     _gameState.removeListener(_onGameStateChange);
     AdService.instance.removeListener(_onAdsChange);
+    PurchaseService.instance.removeListener(_onAdsChange);
     AdService.instance.disposeBanner();
     super.dispose();
   }

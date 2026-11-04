@@ -42,7 +42,9 @@ class HelpOfferOverlay extends StatelessWidget {
               Text(
                 adsRemoved
                     ? 'Você está nesta fase há um tempo.\nAceite a ajuda e receba:'
-                    : 'Você está nesta fase há um tempo.\nAssista um anúncio e receba:',
+                    : onWatchAd != null
+                        ? 'Você está nesta fase há um tempo.\nAssista um anúncio e receba:'
+                        : 'Nenhum anúncio disponível no momento.\nTente de novo em instantes para receber:',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white54,

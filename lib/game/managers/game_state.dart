@@ -208,10 +208,11 @@ class GameState extends ChangeNotifier {
     return totalRoundsPlayed % 10 == 0;
   }
 
-  void incrementStageRounds() {
+  /// Sem vídeo disponível a oferta fica para uma próxima rodada da fase.
+  void incrementStageRounds({required bool canOfferHelp}) {
     stageRoundsPlayed++;
     final threshold = isBossStage ? 3 : 7;
-    if (stageRoundsPlayed >= threshold && !assistActive && !helpOfferDismissed) {
+    if (canOfferHelp && stageRoundsPlayed >= threshold && !assistActive && !helpOfferDismissed) {
       showHelpOffer = true;
       notifyListeners();
     }

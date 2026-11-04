@@ -147,7 +147,7 @@ class AdService extends ChangeNotifier {
     onLoaded();
   }
 
-  Widget? get bannerWidget => _bannerWidget;
+  Widget? get bannerWidget => _adsRemoved ? null : _bannerWidget;
 
   double? get bannerWidth => BannerSize.standard.width.toDouble();
 
