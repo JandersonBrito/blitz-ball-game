@@ -12,7 +12,7 @@ dependencies:
   flame: ^1.18.0
   shared_preferences: ^2.2.2
   provider: ^6.1.2
-  unity_ads_plugin: ^0.3.30
+  unity_ads_plugin: ^0.6.0
   in_app_purchase: ^3.2.0
   games_services: ^4.0.1
 
@@ -30,3 +30,5 @@ flutter_launcher_icons:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/adi-registration.properties

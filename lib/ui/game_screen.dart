@@ -42,17 +42,14 @@ class _GameScreenState extends State<GameScreen> {
     if (_gameState.gameOver) _gameState.reset();
     _flameGame = BallzFlameGame(gameState: _gameState);
     _gameState.addListener(_onGameStateChange);
+    AdService.instance.addListener(_onAdsChange);
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkConsent());
   }
 
   Future<void> _checkConsent() async {
     if (!ConsentService.instance.hasBeenAsked) {
       if (!mounted) return;
-      final consented = await showConsentDialog(context);
-      if (consented) {
-        await AdService.instance.initialize();
-        _loadBanner();
-      }
+      await showConsentDialog(context);
     } else {
       _loadBanner();
     }
@@ -61,8 +58,13 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void dispose() {
     _gameState.removeListener(_onGameStateChange);
+    AdService.instance.removeListener(_onAdsChange);
     AdService.instance.disposeBanner();
     super.dispose();
+  }
+
+  void _onAdsChange() {
+    if (mounted) setState(() {});
   }
 
   void _onGameStateChange() {

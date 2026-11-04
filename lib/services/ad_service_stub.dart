@@ -1,13 +1,15 @@
 import 'package:flutter/widgets.dart';
 
 /// Web stub — all ad calls are no-ops.
-class AdService {
+class AdService extends ChangeNotifier {
   AdService._();
   static final AdService instance = AdService._();
 
   static const bannerId = '';
 
   Future<void> initialize() async {}
+
+  Future<void> applyConsent() async {}
 
   bool get isRewardedReady => false;
 

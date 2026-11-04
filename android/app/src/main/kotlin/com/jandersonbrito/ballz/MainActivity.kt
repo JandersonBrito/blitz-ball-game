@@ -1,4 +1,4 @@
-package com.example.ballz_flutter
+package com.jandersonbrito.ballz
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import '../services/ad_service.dart';
 import '../services/consent_service.dart';
 import 'privacy_policy_screen.dart';
 
-/// Mostra o diálogo de consentimento GDPR.
+/// Mostra o diálogo de consentimento GDPR e aplica a escolha aos anúncios.
 /// Retorna true se o usuário aceitou, false caso contrário.
 Future<bool> showConsentDialog(BuildContext context) async {
   final result = await showDialog<bool>(
@@ -10,6 +11,7 @@ Future<bool> showConsentDialog(BuildContext context) async {
     barrierDismissible: false,
     builder: (_) => const _ConsentDialog(),
   );
+  await AdService.instance.applyConsent();
   return result ?? false;
 }
 

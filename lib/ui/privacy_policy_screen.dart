@@ -56,7 +56,7 @@ class _PolicyText extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
           _Section(
-            title: 'Última atualização: abril de 2026',
+            title: 'Última atualização: novembro de 2026',
             body:
                 'Este aplicativo ("Ballz") é desenvolvido de forma independente. '
                 'Esta Política de Privacidade explica como coletamos, usamos e '
@@ -77,47 +77,60 @@ class _PolicyText extends StatelessWidget {
             title: '2. Publicidade (Unity Ads)',
             body:
                 'Este aplicativo utiliza o Unity Ads (Unity Technologies) para '
-                'exibir anúncios. O Unity Ads pode coletar e processar dados '
+                'exibir anúncios. O serviço só é ativado depois que você aceita '
+                'os anúncios. O Unity Ads pode coletar e processar dados '
                 'para personalizar anúncios conforme sua política de privacidade.\n\n'
                 'Para mais informações sobre as práticas de privacidade do Unity Ads, '
                 'acesse: unity.com/legal/privacy-policy',
           ),
           _Section(
-            title: '3. Uso dos dados',
+            title: '3. Google Play Games e compras',
             body:
-                'Os dados coletados pelos serviços de terceiros são utilizados '
+                'Ao abrir, o aplicativo tenta conectar você ao Google Play Games, '
+                'serviço do Google regido pela política de privacidade do Google.\n\n'
+                'Se você usar o salvamento na nuvem, seu progresso (pontuação, ouro, '
+                'fases, bolas e melhorias) é guardado na sua conta do Google Play Games.\n\n'
+                'As compras são processadas pelo Google Play. Não recebemos seus '
+                'dados de pagamento.',
+          ),
+          _Section(
+            title: '4. Uso dos dados',
+            body:
+                'Os dados coletados para publicidade são utilizados '
                 'exclusivamente para:\n\n'
                 '• Exibição de anúncios relevantes\n'
                 '• Medição de desempenho de anúncios\n'
                 '• Prevenção de fraudes',
           ),
           _Section(
-            title: '4. Seus direitos (LGPD)',
+            title: '5. Seus direitos (LGPD)',
             body:
                 'Em conformidade com a Lei Geral de Proteção de Dados (Lei nº '
                 '13.709/2018), você tem direito a:\n\n'
                 '• Saber quais dados são coletados\n'
                 '• Solicitar a exclusão dos seus dados\n'
-                '• Revogar o consentimento a qualquer momento\n\n'
+                '• Revogar o consentimento a qualquer momento, em Configurações > '
+                'Consentimento de Anúncios\n\n'
                 'Para redefinir seu Advertising ID ou desativar '
                 'anúncios personalizados, acesse as configurações do seu dispositivo '
                 'Android em: Configurações > Google > Anúncios.',
           ),
           _Section(
-            title: '5. Retenção de dados',
+            title: '6. Retenção de dados',
             body:
-                'Não armazenamos dados pessoais em nossos servidores. '
-                'Os dados de progresso do jogo são armazenados apenas localmente '
-                'no seu dispositivo.',
+                'Não armazenamos dados pessoais em servidores próprios. '
+                'Os dados de progresso do jogo são armazenados no seu dispositivo '
+                'e, se você usar o salvamento na nuvem, na sua conta do '
+                'Google Play Games.',
           ),
           _Section(
-            title: '6. Menores de idade',
+            title: '7. Menores de idade',
             body:
                 'Este aplicativo não é direcionado a crianças menores de 13 anos. '
                 'Não coletamos intencionalmente dados de menores de idade.',
           ),
           _Section(
-            title: '7. Contato',
+            title: '8. Contato',
             body:
                 'Se você tiver dúvidas sobre esta Política de Privacidade, '
                 'entre em contato:\n\n'

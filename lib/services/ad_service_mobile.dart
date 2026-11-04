@@ -1,9 +1,10 @@
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart' show ChangeNotifier, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/widgets.dart';
 import 'package:unity_ads_plugin/unity_ads_plugin.dart';
+import 'consent_service.dart';
 import 'purchase_service.dart';
 
-class AdService {
+class AdService extends ChangeNotifier {
   AdService._();
   static final AdService instance = AdService._();
 
@@ -20,9 +21,19 @@ class AdService {
 
   bool _rewardedReady = false;
   bool _interstitialReady = false;
+  bool _initStarted = false;
   UnityBannerAd? _bannerWidget;
 
+  bool get _consented => ConsentService.instance.consented;
+
   Future<void> initialize() async {
+    await _syncPrivacyConsent();
+    if (_initStarted) {
+      _loadInterstitial();
+      _loadRewarded();
+      return;
+    }
+    _initStarted = true;
     await UnityAds.init(
       gameId: _gameId,
       testMode: false,
@@ -30,11 +41,35 @@ class AdService {
         _loadInterstitial();
         _loadRewarded();
       },
-      onFailed: (error, message) {},
+      onFailed: (error, message) => _initStarted = false,
     );
   }
 
+  /// Aplica a escolha atual do [ConsentService] sem precisar reiniciar o app.
+  Future<void> applyConsent() async {
+    if (_consented) {
+      await initialize();
+      if (_bannerWidget == null) await loadBanner(notifyListeners);
+    } else {
+      // Sem SDK iniciado não há nada a avisar: quem recusou nunca o ativa.
+      if (_initStarted) await _syncPrivacyConsent();
+      _interstitialReady = false;
+      _rewardedReady = false;
+      _bannerWidget = null;
+    }
+    notifyListeners();
+  }
+
+  /// Falhas são ignoradas: os métodos abaixo já bloqueiam anúncios sem consentimento.
+  Future<void> _syncPrivacyConsent() async {
+    try {
+      await UnityAds.setPrivacyConsent(PrivacyConsentType.gdpr, _consented);
+      await UnityAds.setPrivacyConsent(PrivacyConsentType.ccpa, _consented);
+    } catch (_) {}
+  }
+
   void _loadInterstitial() {
+    if (!_consented) return;
     UnityAds.load(
       placementId: _interstitialPlacement,
       onComplete: (_) => _interstitialReady = true,
@@ -43,6 +78,7 @@ class AdService {
   }
 
   void _loadRewarded() {
+    if (!_consented) return;
     UnityAds.load(
       placementId: _rewardedPlacement,
       onComplete: (_) => _rewardedReady = true,
@@ -50,12 +86,12 @@ class AdService {
     );
   }
 
-  bool get isRewardedReady => _rewardedReady;
+  bool get isRewardedReady => _consented && _rewardedReady;
 
   bool get _adsRemoved => PurchaseService.instance.adsRemoved;
 
   void showInterstitial() {
-    if (_adsRemoved || !_interstitialReady) return;
+    if (_adsRemoved || !_consented || !_interstitialReady) return;
     _interstitialReady = false;
     UnityAds.showVideoAd(
       placementId: _interstitialPlacement,
@@ -66,7 +102,7 @@ class AdService {
   }
 
   void showRewarded(void Function() onRewarded) {
-    if (_adsRemoved || !_rewardedReady) return;
+    if (_adsRemoved || !_consented || !_rewardedReady) return;
     _rewardedReady = false;
     UnityAds.showVideoAd(
       placementId: _rewardedPlacement,
@@ -80,7 +116,7 @@ class AdService {
   }
 
   Future<void> loadBanner(VoidCallback onLoaded) async {
-    if (_adsRemoved) return;
+    if (_adsRemoved || !_consented) return;
     _bannerWidget = UnityBannerAd(
       placementId: _bannerPlacement,
       size: BannerSize.standard,
