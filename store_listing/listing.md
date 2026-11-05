@@ -1,6 +1,6 @@
 # Ficha da Play Store
 
-Nome do app (máx. 30): Ballz - Elemental Breaker
+Nome do app (máx. 30): Elemental Breaker: Balls
 
 ## Português (pt-BR)
 

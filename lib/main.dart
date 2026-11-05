@@ -51,7 +51,7 @@ class BallzApp extends StatelessWidget {
         ChangeNotifierProvider.value(value: GamesCloudService.instance),
       ],
       child: MaterialApp(
-        title: 'Ballz - Elemental Breaker',
+        title: 'Elemental Breaker: Balls',
         debugShowCheckedModeBanner: false,
         theme: ThemeData.dark().copyWith(
           scaffoldBackgroundColor: const Color(0xFF0a0a14),
