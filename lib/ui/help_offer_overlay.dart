@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/purchase_service.dart';
+import '../services/settings_service.dart';
 
 class HelpOfferOverlay extends StatelessWidget {
   final VoidCallback? onWatchAd; // null quando ad não está disponível
@@ -15,6 +16,7 @@ class HelpOfferOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final adsRemoved = context.watch<PurchaseService>().adsRemoved;
+    final l = context.watch<SettingsService>().l10n;
     return Container(
       color: const Color(0xE80A0A14),
       child: Center(
@@ -29,9 +31,9 @@ class HelpOfferOverlay extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Precisa de ajuda?',
-                style: TextStyle(
+              Text(
+                l.needHelp,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -41,10 +43,10 @@ class HelpOfferOverlay extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 adsRemoved
-                    ? 'Você está nesta fase há um tempo.\nAceite a ajuda e receba:'
+                    ? l.helpBodyAccept
                     : onWatchAd != null
-                        ? 'Você está nesta fase há um tempo.\nAssista um anúncio e receba:'
-                        : 'Nenhum anúncio disponível no momento.\nTente de novo em instantes para receber:',
+                        ? l.helpBodyWatch
+                        : l.helpBodyNoAd,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white54,
@@ -53,11 +55,11 @@ class HelpOfferOverlay extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              _rewardRow('⚔️', 'Dano dobrado'),
+              _rewardRow('⚔️', l.helpDoubleDamage),
               const SizedBox(height: 8),
-              _rewardRow('💥', '+50% chance de crítico'),
+              _rewardRow('💥', l.helpCrit),
               const SizedBox(height: 8),
-              _rewardRow('🔮', '+3 bolas extras'),
+              _rewardRow('🔮', l.helpExtraBalls),
               const SizedBox(height: 24),
               if (onWatchAd != null) ...[
                 SizedBox(
@@ -66,7 +68,7 @@ class HelpOfferOverlay extends StatelessWidget {
                     onPressed: onWatchAd,
                     icon: const Text('▶', style: TextStyle(fontSize: 14)),
                     label: Text(
-                      adsRemoved ? 'Aceitar ajuda' : 'Assistir anúncio',
+                      adsRemoved ? l.helpAccept : l.watchAd,
                       style: const TextStyle(
                         fontFamily: 'monospace',
                         fontWeight: FontWeight.bold,
@@ -87,9 +89,9 @@ class HelpOfferOverlay extends StatelessWidget {
                 width: double.infinity,
                 child: TextButton(
                   onPressed: onDismiss,
-                  child: const Text(
-                    'Não, obrigado',
-                    style: TextStyle(
+                  child: Text(
+                    l.noThanks,
+                    style: const TextStyle(
                       color: Colors.white38,
                       fontFamily: 'monospace',
                       fontSize: 13,

@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../l10n/privacy_policy_text.dart';
+import '../models/app_settings.dart';
+import '../services/settings_service.dart';
 
 class PrivacyPolicyScreen extends StatelessWidget {
   final VoidCallback onBack;
@@ -6,6 +10,8 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settings = context.watch<SettingsService>();
+    final l = settings.l10n;
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -14,9 +20,9 @@ class PrivacyPolicyScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Política de Privacidade',
-                style: TextStyle(
+              Text(
+                l.privacyPolicy,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
@@ -31,13 +37,13 @@ class PrivacyPolicyScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          const Expanded(child: _PolicyText()),
+          Expanded(child: _PolicyText(language: settings.language)),
           const SizedBox(height: 8),
           TextButton(
             onPressed: onBack,
-            child: const Text(
-              'Voltar',
-              style: TextStyle(color: Colors.white54, fontFamily: 'monospace'),
+            child: Text(
+              l.back,
+              style: const TextStyle(color: Colors.white54, fontFamily: 'monospace'),
             ),
           ),
         ],
@@ -47,95 +53,17 @@ class PrivacyPolicyScreen extends StatelessWidget {
 }
 
 class _PolicyText extends StatelessWidget {
-  const _PolicyText();
+  final AppLanguage language;
+  const _PolicyText({required this.language});
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          _Section(
-            title: 'Última atualização: novembro de 2026',
-            body:
-                'Este aplicativo ("Ballz") é desenvolvido de forma independente. '
-                'Esta Política de Privacidade explica como coletamos, usamos e '
-                'protegemos suas informações ao usar nosso aplicativo.',
-          ),
-          _Section(
-            title: '1. Dados coletados',
-            body:
-                'Não coletamos diretamente nenhum dado pessoal identificável. '
-                'No entanto, utilizamos serviços de terceiros que podem coletar '
-                'informações para fins publicitários, incluindo:\n\n'
-                '• Identificador de publicidade (Advertising ID)\n'
-                '• Informações do dispositivo (modelo, sistema operacional)\n'
-                '• Endereço IP\n'
-                '• Dados de uso e interação com anúncios',
-          ),
-          _Section(
-            title: '2. Publicidade (Unity Ads)',
-            body:
-                'Este aplicativo utiliza o Unity Ads (Unity Technologies) para '
-                'exibir anúncios. O serviço só é ativado depois que você aceita '
-                'os anúncios. O Unity Ads pode coletar e processar dados '
-                'para personalizar anúncios conforme sua política de privacidade.\n\n'
-                'Para mais informações sobre as práticas de privacidade do Unity Ads, '
-                'acesse: unity.com/legal/privacy-policy',
-          ),
-          _Section(
-            title: '3. Google Play Games e compras',
-            body:
-                'Ao abrir, o aplicativo tenta conectar você ao Google Play Games, '
-                'serviço do Google regido pela política de privacidade do Google.\n\n'
-                'Se você usar o salvamento na nuvem, seu progresso (pontuação, ouro, '
-                'fases, bolas e melhorias) é guardado na sua conta do Google Play Games.\n\n'
-                'As compras são processadas pelo Google Play. Não recebemos seus '
-                'dados de pagamento.',
-          ),
-          _Section(
-            title: '4. Uso dos dados',
-            body:
-                'Os dados coletados para publicidade são utilizados '
-                'exclusivamente para:\n\n'
-                '• Exibição de anúncios relevantes\n'
-                '• Medição de desempenho de anúncios\n'
-                '• Prevenção de fraudes',
-          ),
-          _Section(
-            title: '5. Seus direitos (LGPD)',
-            body:
-                'Em conformidade com a Lei Geral de Proteção de Dados (Lei nº '
-                '13.709/2018), você tem direito a:\n\n'
-                '• Saber quais dados são coletados\n'
-                '• Solicitar a exclusão dos seus dados\n'
-                '• Revogar o consentimento a qualquer momento, em Configurações > '
-                'Consentimento de Anúncios\n\n'
-                'Para redefinir seu Advertising ID ou desativar '
-                'anúncios personalizados, acesse as configurações do seu dispositivo '
-                'Android em: Configurações > Google > Anúncios.',
-          ),
-          _Section(
-            title: '6. Retenção de dados',
-            body:
-                'Não armazenamos dados pessoais em servidores próprios. '
-                'Os dados de progresso do jogo são armazenados no seu dispositivo '
-                'e, se você usar o salvamento na nuvem, na sua conta do '
-                'Google Play Games.',
-          ),
-          _Section(
-            title: '7. Menores de idade',
-            body:
-                'Este aplicativo não é direcionado a crianças menores de 13 anos. '
-                'Não coletamos intencionalmente dados de menores de idade.',
-          ),
-          _Section(
-            title: '8. Contato',
-            body:
-                'Se você tiver dúvidas sobre esta Política de Privacidade, '
-                'entre em contato:\n\n'
-                'E-mail: j.a.brito@live.com',
-          ),
+        children: [
+          for (final (title, body) in privacyPolicyText[language]!)
+            _Section(title: title, body: body),
         ],
       ),
     );

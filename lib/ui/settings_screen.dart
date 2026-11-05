@@ -38,8 +38,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _handleCloudSignIn() async {
     final ok = await GamesCloudService.instance.signIn();
     if (!mounted) return;
+    final l = context.read<SettingsService>().l10n;
     _showCloudFeedback(
-      ok ? 'Conectado ao Google Play Games!' : 'Falha ao conectar. Tente novamente.',
+      ok ? l.cloudSignInOk : l.cloudSignInFailed,
       isError: !ok,
     );
   }
@@ -51,8 +52,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final ok = await GamesCloudService.instance.saveToCloud(code);
     if (!mounted) return;
     setState(() => _cloudSaving = false);
+    final l = context.read<SettingsService>().l10n;
     _showCloudFeedback(
-      ok ? 'Progresso salvo na nuvem!' : 'Erro ao salvar: ${GamesCloudService.instance.lastError}',
+      ok ? l.cloudSaved : l.cloudSaveFailed,
       isError: !ok,
     );
   }
@@ -63,16 +65,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final code = await GamesCloudService.instance.loadFromCloud();
     if (!mounted) return;
     setState(() => _cloudRestoring = false);
+    final l = context.read<SettingsService>().l10n;
     if (code == null) {
-      _showCloudFeedback(
-        GamesCloudService.instance.lastError ?? 'Nenhum save encontrado na nuvem.',
-        isError: true,
-      );
+      _showCloudFeedback(l.cloudNoSave, isError: true);
       return;
     }
     final applied = widget.gameState.applyBackupCode(code);
     _showCloudFeedback(
-      applied ? 'Progresso restaurado da nuvem!' : 'Dados inválidos no save da nuvem.',
+      applied ? l.cloudRestored : l.cloudInvalid,
       isError: !applied,
     );
   }
@@ -91,9 +91,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final code = widget.gameState.exportBackupCode();
     Clipboard.setData(ClipboardData(text: code));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Código copiado! Cole em outro aparelho para restaurar.'),
-        duration: Duration(seconds: 3),
+      SnackBar(
+        content: Text(context.read<SettingsService>().l10n.codeCopied),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -101,8 +101,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _applyRestore() {
     final code = _restoreController.text.trim();
     final ok = widget.gameState.applyBackupCode(code);
+    final l = context.read<SettingsService>().l10n;
     setState(() {
-      _restoreError = ok ? null : 'Código inválido. Verifique e tente novamente.';
+      _restoreError = ok ? null : l.invalidCode;
       if (ok) {
         _showRestoreField = false;
         _restoreController.clear();
@@ -110,7 +111,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Progresso restaurado com sucesso!')),
+        SnackBar(content: Text(l.restoreSuccess)),
       );
     }
   }
@@ -276,11 +277,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ));
             },
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
               child: Text(
-                'Política de Privacidade',
-                style: TextStyle(
+                l.privacyPolicy,
+                style: const TextStyle(
                   color: Colors.white24,
                   fontSize: 11,
                   fontFamily: 'monospace',
@@ -301,9 +302,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
                 children: [
-                  const Text(
-                    'Consentimento de Anúncios: ',
-                    style: TextStyle(
+                  Text(
+                    l.adConsentLabel,
+                    style: const TextStyle(
                       color: Colors.white24,
                       fontSize: 11,
                       fontFamily: 'monospace',
@@ -311,8 +312,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   Text(
                     ConsentService.instance.hasBeenAsked
-                        ? (ConsentService.instance.consented ? 'Aceito' : 'Recusado')
-                        : 'Não definido',
+                        ? (ConsentService.instance.consented ? l.consentAccepted : l.consentDeclined)
+                        : l.consentUnset,
                     style: TextStyle(
                       color: ConsentService.instance.consented
                           ? const Color(0xFF1D9E75)
@@ -331,7 +332,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 16),
 
           // ── Remover Anúncios ──────────────────────────────────────────
-          Text('COMPRAS',
+          Text(l.purchasesHeader,
               style: const TextStyle(
                   color: Colors.white38,
                   fontSize: 10,
@@ -339,11 +340,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   fontFamily: 'monospace')),
           const SizedBox(height: 8),
           if (purchase.adsRemoved)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
               child: Text(
-                '✓ Anúncios removidos',
-                style: TextStyle(
+                l.adsRemovedDone,
+                style: const TextStyle(
                     color: Color(0xFF1D9E75),
                     fontSize: 12,
                     fontFamily: 'monospace',
@@ -362,7 +363,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  purchase.purchasing ? 'Aguardando...' : 'Remover Anúncios',
+                  purchase.purchasing ? l.waiting : l.removeAds,
                   style: const TextStyle(
                       color: Color(0xFFEF9F27),
                       fontSize: 12,
@@ -374,9 +375,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 6),
             GestureDetector(
               onTap: () => purchase.restorePurchases(),
-              child: const Text(
-                'Restaurar compra anterior',
-                style: TextStyle(
+              child: Text(
+                l.restorePurchase,
+                style: const TextStyle(
                     color: Colors.white38,
                     fontSize: 10,
                     fontFamily: 'monospace',
@@ -389,7 +390,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
 
           // ── Save na Nuvem ─────────────────────────────────────────────
-          Text('SAVE NA NUVEM',
+          Text(l.cloudHeader,
               style: const TextStyle(
                   color: Colors.white38,
                   fontSize: 10,
@@ -411,10 +412,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         border: Border.all(color: Colors.white24),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text(
-                        'Entrar no Google Play Games',
+                      child: Text(
+                        l.playGamesSignIn,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                             color: Colors.white54,
                             fontSize: 11,
                             fontFamily: 'monospace'),
@@ -434,7 +435,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              _cloudSaving ? 'Salvando...' : 'Salvar na Nuvem',
+                              _cloudSaving ? l.cloudSaving : l.cloudSave,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                   color: Colors.white70,
@@ -455,7 +456,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              _cloudRestoring ? 'Restaurando...' : 'Restaurar da Nuvem',
+                              _cloudRestoring ? l.cloudRestoring : l.cloudRestore,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                   color: Colors.white70,
@@ -468,9 +469,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    '✓ Conectado ao Google Play Games',
-                    style: TextStyle(
+                  Text(
+                    l.playGamesConnected,
+                    style: const TextStyle(
                         color: Color(0xFF1D9E75),
                         fontSize: 10,
                         fontFamily: 'monospace'),
@@ -495,7 +496,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
 
           // ── Backup / Restore ──────────────────────────────────────────
-          Text('BACKUP DE PROGRESSO',
+          Text(l.backupHeader,
               style: const TextStyle(
                   color: Colors.white38,
                   fontSize: 10,
@@ -513,10 +514,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       border: Border.all(color: Colors.white24),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text(
-                      'Copiar Código',
+                    child: Text(
+                      l.copyCode,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 11,
                           fontFamily: 'monospace'),
@@ -534,10 +535,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       border: Border.all(color: Colors.white24),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text(
-                      'Restaurar',
+                    child: Text(
+                      l.restore,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 11,
                           fontFamily: 'monospace'),
@@ -553,7 +554,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               controller: _restoreController,
               style: const TextStyle(color: Colors.white, fontSize: 11, fontFamily: 'monospace'),
               decoration: InputDecoration(
-                hintText: 'Cole o código aqui',
+                hintText: l.pasteCodeHint,
                 hintStyle: const TextStyle(color: Colors.white24, fontSize: 11),
                 filled: true,
                 fillColor: Colors.white10,
@@ -572,10 +573,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   border: Border.all(color: const Color(0xFF1D9E75)),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
-                  'Confirmar Restauração',
+                child: Text(
+                  l.confirmRestore,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                       color: Color(0xFF1D9E75),
                       fontSize: 11,
                       fontFamily: 'monospace',

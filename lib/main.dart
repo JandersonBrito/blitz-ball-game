@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -14,7 +15,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ConsentService.instance.load();
   await PurchaseService.instance.initialize();
-  await GamesCloudService.instance.initialize();
+  // O login pode abrir UI do Play Games ou demorar; não pode segurar a abertura.
+  unawaited(GamesCloudService.instance.initialize());
   // Ads inicializados apenas se consentimento já foi dado.
   // Novo usuário: diálogo será mostrado em GameScreen antes de inicializar.
   if (ConsentService.instance.hasBeenAsked && ConsentService.instance.consented) {
@@ -49,7 +51,7 @@ class BallzApp extends StatelessWidget {
         ChangeNotifierProvider.value(value: GamesCloudService.instance),
       ],
       child: MaterialApp(
-        title: 'Ballz',
+        title: 'Ballz - Elemental Breaker',
         debugShowCheckedModeBanner: false,
         theme: ThemeData.dark().copyWith(
           scaffoldBackgroundColor: const Color(0xFF0a0a14),

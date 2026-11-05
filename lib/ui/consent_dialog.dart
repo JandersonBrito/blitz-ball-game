@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/ad_service.dart';
 import '../services/consent_service.dart';
+import '../services/settings_service.dart';
 import 'privacy_policy_screen.dart';
 
 /// Mostra o diálogo de consentimento GDPR e aplica a escolha aos anúncios.
@@ -20,6 +22,7 @@ class _ConsentDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.watch<SettingsService>().l10n;
     return Dialog(
       backgroundColor: const Color(0xFF0F1523),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -29,9 +32,9 @@ class _ConsentDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Anúncios e Privacidade',
-              style: TextStyle(
+            Text(
+              l.consentTitle,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -39,12 +42,9 @@ class _ConsentDialog extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Este jogo exibe anúncios para se manter gratuito. '
-              'Para oferecer anúncios relevantes, parceiros podem '
-              'coletar e usar dados do seu dispositivo conforme a '
-              'nossa política de privacidade.',
-              style: TextStyle(
+            Text(
+              l.consentBody,
+              style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 12,
                 fontFamily: 'monospace',
@@ -65,9 +65,9 @@ class _ConsentDialog extends StatelessWidget {
                   ),
                 ));
               },
-              child: const Text(
-                'Ver Política de Privacidade',
-                style: TextStyle(
+              child: Text(
+                l.consentViewPolicy,
+                style: const TextStyle(
                   color: Color(0xFF1D9E75),
                   fontSize: 11,
                   fontFamily: 'monospace',
@@ -81,7 +81,7 @@ class _ConsentDialog extends StatelessWidget {
               children: [
                 Expanded(
                   child: _Button(
-                    label: 'Recusar',
+                    label: l.decline,
                     color: Colors.white24,
                     textColor: Colors.white54,
                     onTap: () async {
@@ -93,7 +93,7 @@ class _ConsentDialog extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _Button(
-                    label: 'Aceitar',
+                    label: l.accept,
                     color: const Color(0xFF1D9E75),
                     textColor: Colors.white,
                     onTap: () async {
@@ -105,9 +105,9 @@ class _ConsentDialog extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Você pode alterar esta preferência a qualquer momento nas configurações.',
-              style: TextStyle(color: Colors.white24, fontSize: 10, fontFamily: 'monospace'),
+            Text(
+              l.consentChangeLater,
+              style: const TextStyle(color: Colors.white24, fontSize: 10, fontFamily: 'monospace'),
             ),
           ],
         ),

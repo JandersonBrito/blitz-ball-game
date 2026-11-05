@@ -25,7 +25,11 @@ class PurchaseService extends ChangeNotifier {
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
     _adsRemoved = prefs.getBool(_kAdsRemoved) ?? false;
+    // A loja não pode atrasar a abertura do jogo.
+    unawaited(_connectStore());
+  }
 
+  Future<void> _connectStore() async {
     _available = await InAppPurchase.instance.isAvailable();
     if (!_available) return;
 
@@ -33,6 +37,12 @@ class PurchaseService extends ChangeNotifier {
       _handlePurchases,
       onError: (_) {},
     );
+    notifyListeners();
+    // Recupera compras de reinstalações e confirma as interrompidas: o Google
+    // estorna em 3 dias a compra que não for confirmada.
+    try {
+      await InAppPurchase.instance.restorePurchases();
+    } catch (_) {}
   }
 
   void _handlePurchases(List<PurchaseDetails> purchases) async {
@@ -42,7 +52,7 @@ class PurchaseService extends ChangeNotifier {
             purchase.status == PurchaseStatus.restored) {
           await _markAdsRemoved();
         }
-        if (purchase.status != PurchaseStatus.pending) {
+        if (purchase.pendingCompletePurchase) {
           await InAppPurchase.instance.completePurchase(purchase);
         }
       }

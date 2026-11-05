@@ -1,3 +1,4 @@
+import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_settings.dart';
@@ -24,9 +25,16 @@ class SettingsService extends ChangeNotifier {
         _volume = volume,
         _tutorialSeen = tutorialSeen;
 
+  /// O consentimento aparece antes de o jogador poder escolher o idioma.
+  static AppLanguage languageForCode(String code) => AppLanguage.values.firstWhere(
+        (lang) => lang.name == code,
+        orElse: () => AppLanguage.en,
+      );
+
   static Future<SettingsService> load() async {
     final prefs = await SharedPreferences.getInstance();
-    final langIndex = prefs.getInt(_keyLanguage) ?? AppLanguage.en.index;
+    final langIndex = prefs.getInt(_keyLanguage) ??
+        languageForCode(PlatformDispatcher.instance.locale.languageCode).index;
     final soundEnabled = prefs.getBool(_keySoundEnabled) ?? true;
     final volume = prefs.getDouble(_keyVolume) ?? 0.8;
     final tutorialSeen = prefs.getBool(_keyTutorialSeen) ?? false;

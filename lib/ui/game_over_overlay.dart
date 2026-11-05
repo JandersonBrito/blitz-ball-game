@@ -56,7 +56,7 @@ class GameOverOverlay extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: onWatchAd,
                 icon: const Text('▶', style: TextStyle(fontSize: 14)),
-                label: Text(adsRemoved ? 'Continuar' : 'Continuar (assistir anúncio)',
+                label: Text(adsRemoved ? l.continuePlain : l.continueWatchAd,
                     style: const TextStyle(
                         fontFamily: 'monospace', fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(

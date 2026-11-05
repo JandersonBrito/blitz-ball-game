@@ -299,4 +299,56 @@ class L10n {
     'Apunta y toca  ●=+1 bola  ⬤=oro  ⊙=triplicar',
     'Vise et touche  ●=+1 balle  ⬤=or  ⊙=tripler',
   ]);
+
+  // ── Consentimento, compras, nuvem e ajuda ─────────────────────────────────
+  String get consentTitle => _t(["Anúncios e Privacidade", "Ads and Privacy", "Anuncios y privacidad", "Annonces et confidentialité"]);
+  String get consentBody => _t(["Este jogo exibe anúncios para se manter gratuito. Para oferecer anúncios relevantes, parceiros podem coletar e usar dados do seu dispositivo conforme a nossa política de privacidade.", "This game shows ads to stay free. To offer relevant ads, partners may collect and use data from your device as described in our privacy policy.", "Este juego muestra anuncios para seguir siendo gratuito. Para ofrecer anuncios relevantes, nuestros socios pueden recopilar y usar datos de tu dispositivo según nuestra política de privacidad.", "Ce jeu affiche des annonces pour rester gratuit. Pour proposer des annonces pertinentes, des partenaires peuvent collecter et utiliser des données de votre appareil conformément à notre politique de confidentialité."]);
+  String get consentViewPolicy => _t(["Ver Política de Privacidade", "View Privacy Policy", "Ver política de privacidad", "Voir la politique de confidentialité"]);
+  String get decline => _t(["Recusar", "Decline", "Rechazar", "Refuser"]);
+  String get accept => _t(["Aceitar", "Accept", "Aceptar", "Accepter"]);
+  String get consentChangeLater => _t(["Você pode alterar esta preferência a qualquer momento nas configurações.", "You can change this choice at any time in settings.", "Puedes cambiar esta preferencia en cualquier momento en los ajustes.", "Vous pouvez modifier ce choix à tout moment dans les paramètres."]);
+  String get privacyPolicy => _t(["Política de Privacidade", "Privacy Policy", "Política de privacidad", "Politique de confidentialité"]);
+  String get adConsentLabel => _t(["Consentimento de Anúncios: ", "Ad Consent: ", "Consentimiento de anuncios: ", "Consentement publicitaire : "]);
+  String get consentAccepted => _t(["Aceito", "Accepted", "Aceptado", "Accepté"]);
+  String get consentDeclined => _t(["Recusado", "Declined", "Rechazado", "Refusé"]);
+  String get consentUnset => _t(["Não definido", "Not set", "Sin definir", "Non défini"]);
+  String get purchasesHeader => _t(["COMPRAS", "PURCHASES", "COMPRAS", "ACHATS"]);
+  String get adsRemovedDone => _t(["✓ Anúncios removidos", "✓ Ads removed", "✓ Anuncios eliminados", "✓ Annonces supprimées"]);
+  String get removeAds => _t(["Remover Anúncios", "Remove Ads", "Eliminar anuncios", "Supprimer les annonces"]);
+  String get waiting => _t(["Aguardando...", "Waiting...", "Esperando...", "En attente..."]);
+  String get restorePurchase => _t(["Restaurar compra anterior", "Restore previous purchase", "Restaurar compra anterior", "Restaurer un achat précédent"]);
+  String get cloudHeader => _t(["SAVE NA NUVEM", "CLOUD SAVE", "GUARDADO EN LA NUBE", "SAUVEGARDE CLOUD"]);
+  String get playGamesSignIn => _t(["Entrar no Google Play Games", "Sign in to Google Play Games", "Iniciar sesión en Google Play Juegos", "Se connecter à Google Play Jeux"]);
+  String get playGamesConnected => _t(["✓ Conectado ao Google Play Games", "✓ Connected to Google Play Games", "✓ Conectado a Google Play Juegos", "✓ Connecté à Google Play Jeux"]);
+  String get cloudSignInOk => _t(["Conectado ao Google Play Games!", "Connected to Google Play Games!", "¡Conectado a Google Play Juegos!", "Connecté à Google Play Jeux !"]);
+  String get cloudSignInFailed => _t(["Falha ao conectar. Tente novamente.", "Could not connect. Please try again.", "No se pudo conectar. Inténtalo de nuevo.", "Connexion impossible. Veuillez réessayer."]);
+  String get cloudSave => _t(["Salvar na Nuvem", "Save to Cloud", "Guardar en la nube", "Sauvegarder"]);
+  String get cloudSaving => _t(["Salvando...", "Saving...", "Guardando...", "Sauvegarde..."]);
+  String get cloudSaved => _t(["Progresso salvo na nuvem!", "Progress saved to the cloud!", "¡Progreso guardado en la nube!", "Progression sauvegardée dans le cloud !"]);
+  String get cloudSaveFailed => _t(["Erro ao salvar. Tente novamente.", "Could not save. Please try again.", "No se pudo guardar. Inténtalo de nuevo.", "Sauvegarde impossible. Veuillez réessayer."]);
+  String get cloudRestore => _t(["Restaurar da Nuvem", "Restore from Cloud", "Restaurar de la nube", "Restaurer"]);
+  String get cloudRestoring => _t(["Restaurando...", "Restoring...", "Restaurando...", "Restauration..."]);
+  String get cloudRestored => _t(["Progresso restaurado da nuvem!", "Progress restored from the cloud!", "¡Progreso restaurado de la nube!", "Progression restaurée depuis le cloud !"]);
+  String get cloudNoSave => _t(["Nenhum save encontrado na nuvem.", "No cloud save found.", "No se encontró ningún guardado en la nube.", "Aucune sauvegarde trouvée dans le cloud."]);
+  String get cloudInvalid => _t(["Dados inválidos no save da nuvem.", "Invalid cloud save data.", "Datos no válidos en el guardado en la nube.", "Données de sauvegarde cloud non valides."]);
+  String get backupHeader => _t(["BACKUP DE PROGRESSO", "PROGRESS BACKUP", "COPIA DE SEGURIDAD", "SAUVEGARDE DE PROGRESSION"]);
+  String get copyCode => _t(["Copiar Código", "Copy Code", "Copiar código", "Copier le code"]);
+  String get restore => _t(["Restaurar", "Restore", "Restaurar", "Restaurer"]);
+  String get pasteCodeHint => _t(["Cole o código aqui", "Paste the code here", "Pega el código aquí", "Collez le code ici"]);
+  String get confirmRestore => _t(["Confirmar Restauração", "Confirm Restore", "Confirmar restauración", "Confirmer la restauration"]);
+  String get codeCopied => _t(["Código copiado! Cole em outro aparelho para restaurar.", "Code copied! Paste it on another device to restore.", "¡Código copiado! Pégalo en otro dispositivo para restaurar.", "Code copié ! Collez-le sur un autre appareil pour restaurer."]);
+  String get invalidCode => _t(["Código inválido. Verifique e tente novamente.", "Invalid code. Check it and try again.", "Código no válido. Compruébalo e inténtalo de nuevo.", "Code non valide. Vérifiez-le et réessayez."]);
+  String get restoreSuccess => _t(["Progresso restaurado com sucesso!", "Progress restored successfully!", "¡Progreso restaurado correctamente!", "Progression restaurée avec succès !"]);
+  String get needHelp => _t(["Precisa de ajuda?", "Need help?", "¿Necesitas ayuda?", "Besoin d'aide ?"]);
+  String get helpBodyAccept => _t(["Você está nesta fase há um tempo.\nAceite a ajuda e receba:", "You've been on this stage for a while.\nAccept the help and get:", "Llevas un rato en esta etapa.\nAcepta la ayuda y recibe:", "Vous êtes sur ce niveau depuis un moment.\nAcceptez l'aide et recevez :"]);
+  String get helpBodyWatch => _t(["Você está nesta fase há um tempo.\nAssista um anúncio e receba:", "You've been on this stage for a while.\nWatch an ad and get:", "Llevas un rato en esta etapa.\nMira un anuncio y recibe:", "Vous êtes sur ce niveau depuis un moment.\nRegardez une annonce et recevez :"]);
+  String get helpBodyNoAd => _t(["Nenhum anúncio disponível no momento.\nTente de novo em instantes para receber:", "No ads available right now.\nTry again shortly to get:", "No hay anuncios disponibles ahora.\nInténtalo de nuevo en un momento para recibir:", "Aucune annonce disponible pour l'instant.\nRéessayez bientôt pour recevoir :"]);
+  String get helpDoubleDamage => _t(["Dano dobrado", "Double damage", "Daño doble", "Dégâts doublés"]);
+  String get helpCrit => _t(["+50% chance de crítico", "+50% critical chance", "+50% de probabilidad de crítico", "+50% de chance de critique"]);
+  String get helpExtraBalls => _t(["+3 bolas extras", "+3 extra balls", "+3 bolas extra", "+3 balles supplémentaires"]);
+  String get helpAccept => _t(["Aceitar ajuda", "Accept help", "Aceptar ayuda", "Accepter l'aide"]);
+  String get watchAd => _t(["Assistir anúncio", "Watch ad", "Ver anuncio", "Regarder une annonce"]);
+  String get noThanks => _t(["Não, obrigado", "No, thanks", "No, gracias", "Non merci"]);
+  String get continuePlain => _t(["Continuar", "Continue", "Continuar", "Continuer"]);
+  String get continueWatchAd => _t(["Continuar (assistir anúncio)", "Continue (watch ad)", "Continuar (ver anuncio)", "Continuer (regarder une annonce)"]);
 }
