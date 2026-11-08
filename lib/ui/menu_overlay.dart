@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../game/managers/game_state.dart';
+import '../services/purchase_service.dart';
 import '../services/settings_service.dart';
 import '../models/element.dart';
 import 'upgrade_screen.dart';
@@ -9,8 +10,9 @@ import 'tutorial_screen.dart';
 
 class MenuOverlay extends StatefulWidget {
   final VoidCallback onStartWave;
+  final void Function([String? hint]) onOpenShop;
 
-  const MenuOverlay({super.key, required this.onStartWave});
+  const MenuOverlay({super.key, required this.onStartWave, required this.onOpenShop});
 
   @override
   State<MenuOverlay> createState() => _MenuOverlayState();
@@ -46,7 +48,9 @@ class _MenuOverlayState extends State<MenuOverlay> {
         child: _showSettings
             ? SettingsScreen(onBack: () => setState(() => _showSettings = false), gameState: state)
             : _showUpgrades
-                ? UpgradeScreen(onBack: () => setState(() => _showUpgrades = false))
+                ? UpgradeScreen(
+                    onBack: () => setState(() => _showUpgrades = false),
+                    onOpenShop: widget.onOpenShop)
                 : _showTutorial
                     ? TutorialScreen(onBack: _closeTutorial)
                     : _buildMainMenu(state, context),
@@ -169,6 +173,8 @@ class _MenuOverlayState extends State<MenuOverlay> {
                       style: const TextStyle(
                           fontFamily: 'monospace', fontWeight: FontWeight.bold)),
                 ),
+                const SizedBox(height: 8),
+                _ShopButton(onTap: () => widget.onOpenShop()),
                 const SizedBox(height: 8),
                 OutlinedButton(
                   onPressed: () => setState(() => _showSettings = true),
@@ -296,6 +302,76 @@ class _ElementSelector extends StatelessWidget {
                   fontSize: 9,
                   fontFamily: 'monospace')),
         ],
+      ],
+    );
+  }
+}
+
+/// Botão da loja; ganha um selo pulsante enquanto o Pacote Inicial está à venda.
+class _ShopButton extends StatefulWidget {
+  final VoidCallback onTap;
+  const _ShopButton({required this.onTap});
+
+  @override
+  State<_ShopButton> createState() => _ShopButtonState();
+}
+
+class _ShopButtonState extends State<_ShopButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.watch<SettingsService>().l10n;
+    final offer = context.watch<PurchaseService>().starterAvailable;
+    const gold = Color(0xFFEF9F27);
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        ElevatedButton(
+          onPressed: widget.onTap,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: gold.withValues(alpha: 0.18),
+            foregroundColor: gold,
+            elevation: 0,
+            side: const BorderSide(color: gold),
+            minimumSize: const Size(double.infinity, 48),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          child: Text(l.shopBtn,
+              style: const TextStyle(
+                  fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+        ),
+        if (offer)
+          Positioned(
+            top: -8,
+            right: -6,
+            child: ScaleTransition(
+              scale: Tween(begin: 0.9, end: 1.1).animate(_pulse),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE24B4A),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(l.offerBadge,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace')),
+              ),
+            ),
+          ),
       ],
     );
   }

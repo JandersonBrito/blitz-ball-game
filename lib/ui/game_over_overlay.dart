@@ -7,10 +7,12 @@ import '../services/settings_service.dart';
 class GameOverOverlay extends StatelessWidget {
   final VoidCallback onRestart;
   final VoidCallback? onWatchAd; // null quando o ad não está disponível
+  final VoidCallback onOpenShop;
 
   const GameOverOverlay({
     super.key,
     required this.onRestart,
+    required this.onOpenShop,
     this.onWatchAd,
   });
 
@@ -84,6 +86,15 @@ class GameOverOverlay extends StatelessWidget {
               child: Text(l.playAgain,
                   style: const TextStyle(
                       fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 6),
+            TextButton(
+              onPressed: onOpenShop,
+              child: Text(l.gameOverShop,
+                  style: const TextStyle(
+                      color: Color(0xFFEF9F27),
+                      fontSize: 12,
+                      fontFamily: 'monospace')),
             ),
           ],
         ),

@@ -23,6 +23,8 @@ class GameState extends ChangeNotifier {
   bool assistActive = false;
   int stageRoundsPlayed = 0;
   int totalRoundsPlayed = 0;
+  /// Ouro ganho jogando na fase atual (não inclui compras).
+  int stageGoldEarned = 0;
   ElementType ballElement = ElementType.neutral;
   Map<String, int> upgrades = {for (var u in upgradeDefs) u.id: 0};
 
@@ -172,6 +174,14 @@ class GameState extends ChangeNotifier {
   }
 
   void addGold(int amount) { gold += amount; notifyListeners(); }
+
+  /// Ouro vindo dos blocos; [multiplier] vem do "Ouro em Dobro".
+  void earnGold(int base, {int multiplier = 1}) {
+    final amount = base * multiplier;
+    gold += amount;
+    stageGoldEarned += amount;
+    notifyListeners();
+  }
   void addScore(int amount) { score += amount; notifyListeners(); }
   void incrementBallCount() { ballCount++; notifyListeners(); }
 
@@ -185,6 +195,7 @@ class GameState extends ChangeNotifier {
     assistActive = false;
     helpOfferDismissed = false;
     stageRoundsPlayed = 0;
+    stageGoldEarned = 0;
     notifyListeners();
   }
 
@@ -269,6 +280,7 @@ class GameState extends ChangeNotifier {
     gameOver = false;
     stageComplete = false;
     freeContinueUsed = false;
+    stageGoldEarned = 0;
     ballElement = ElementType.neutral;
     ballCount = initialBalls;
     // mantém: gold, upgrades, level, stage, wave, waveInStage, wavesInStage

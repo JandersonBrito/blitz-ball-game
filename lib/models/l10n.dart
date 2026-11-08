@@ -401,4 +401,66 @@ class L10n {
   String get noThanks => _t(["Não, obrigado", "No, thanks", "No, gracias", "Non merci"]);
   String get continuePlain => _t(["Continuar", "Continue", "Continuar", "Continuer"]);
   String get continueWatchAd => _t(["Continuar (assistir anúncio)", "Continue (watch ad)", "Continuar (ver anuncio)", "Continuer (regarder une annonce)"]);
+
+  // ── Loja ──────────────────────────────────────────────────────────────────
+  String get shopBtn => _t(["🛒 LOJA", "🛒 SHOP", "🛒 TIENDA", "🛒 BOUTIQUE"]);
+  String get shopTitle => _t(["LOJA", "SHOP", "TIENDA", "BOUTIQUE"]);
+  String get offerBadge => _t(["OFERTA", "OFFER", "OFERTA", "OFFRE"]);
+  String get oneTimeOffer => _t(["OFERTA ÚNICA", "ONE-TIME OFFER", "OFERTA ÚNICA", "OFFRE UNIQUE"]);
+  String get permanentTag => _t(["PERMANENTE", "PERMANENT", "PERMANENTE", "PERMANENT"]);
+  String get starterTitle => _t(["Pacote Inicial", "Starter Pack", "Paquete inicial", "Pack de départ"]);
+  String starterDesc(int gold) => _t([
+    "Sem anúncios para sempre + ⬤ $gold de ouro",
+    "No ads forever + ⬤ $gold gold",
+    "Sin anuncios para siempre + ⬤ $gold de oro",
+    "Sans annonces pour toujours + ⬤ $gold d'or",
+  ]);
+  String get doublerTitle => _t(["Ouro em Dobro", "Double Gold", "Oro doble", "Or double"]);
+  String get doublerDesc => _t([
+    "Todo ouro dos blocos vale 2x, para sempre",
+    "All gold from blocks is worth 2x, forever",
+    "Todo el oro de los bloques vale 2x, para siempre",
+    "Tout l'or des blocs vaut 2x, pour toujours",
+  ]);
+  String get removeAdsDesc => _t([
+    "Sem banner nem intersticiais; ajudas sem vídeo",
+    "No banner or interstitials; help without videos",
+    "Sin banner ni intersticiales; ayudas sin video",
+    "Ni bannière ni interstitiels ; aides sans vidéo",
+  ]);
+  String goldPackName(int i) => switch (i) {
+    0 => _t(["Saco de Ouro", "Gold Pouch", "Bolsa de oro", "Bourse d'or"]),
+    1 => _t(["Baú de Ouro", "Gold Chest", "Cofre de oro", "Coffre d'or"]),
+    _ => _t(["Tesouro Elemental", "Elemental Hoard", "Tesoro elemental", "Trésor élémentaire"]),
+  };
+  String bonusTag(int pct) => _t(["+$pct% ouro", "+$pct% gold", "+$pct% oro", "+$pct% d'or"]);
+  String get popularTag => _t(["POPULAR", "POPULAR", "POPULAR", "POPULAIRE"]);
+  String get bestValueTag => _t(["MELHOR VALOR", "BEST VALUE", "MEJOR VALOR", "MEILLEUR PRIX"]);
+  String get ownedTag => _t(["✓ Adquirido", "✓ Owned", "✓ Adquirido", "✓ Acquis"]);
+  String get storeUnavailable => _t([
+    "Loja indisponível no momento.",
+    "Store unavailable right now.",
+    "Tienda no disponible por ahora.",
+    "Boutique indisponible pour le moment.",
+  ]);
+  String goldAdded(int n) => _t(["+$n ⬤ adicionados!", "+$n ⬤ added!", "¡+$n ⬤ añadidos!", "+$n ⬤ ajoutés !"]);
+  String needGoldFor(int n, String upgrade) => _t([
+    "Faltam ⬤ $n para $upgrade",
+    "You need ⬤ $n more for $upgrade",
+    "Te faltan ⬤ $n para $upgrade",
+    "Il manque ⬤ $n pour $upgrade",
+  ]);
+  String stageGoldEarned(int n) => _t(["+$n ⬤ nesta fase", "+$n ⬤ this stage", "+$n ⬤ en esta etapa", "+$n ⬤ ce niveau"]);
+  String doublerUpsell(int n) => _t([
+    "Com Ouro em Dobro seriam +$n ⬤  →",
+    "With Double Gold it'd be +$n ⬤  →",
+    "Con Oro doble serían +$n ⬤  →",
+    "Avec Or double : +$n ⬤  →",
+  ]);
+  String get gameOverShop => _t([
+    "🛒 Fique mais forte na loja",
+    "🛒 Get stronger in the shop",
+    "🛒 Hazte más fuerte en la tienda",
+    "🛒 Devenez plus fort à la boutique",
+  ]);
 }

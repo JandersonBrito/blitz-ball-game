@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../services/purchase_service.dart';
 import '../game/managers/game_state.dart';
 import '../services/settings_service.dart';
 import '../models/element.dart';
@@ -61,6 +62,13 @@ class HudOverlay extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                     fontFamily: 'monospace')),
+            if (context.watch<PurchaseService>().goldDoubler)
+              const Text(' ×2',
+                  style: TextStyle(
+                      color: Color(0xFF7F77DD),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                      fontFamily: 'monospace')),
             const SizedBox(width: 8),
 
             // element — flexible so long names shrink

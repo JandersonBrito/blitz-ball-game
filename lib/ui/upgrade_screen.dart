@@ -6,7 +6,8 @@ import '../models/upgrade.dart';
 
 class UpgradeScreen extends StatelessWidget {
   final VoidCallback onBack;
-  const UpgradeScreen({super.key, required this.onBack});
+  final void Function([String? hint]) onOpenShop;
+  const UpgradeScreen({super.key, required this.onBack, required this.onOpenShop});
 
   @override
   Widget build(BuildContext context) {
@@ -26,11 +27,22 @@ class UpgradeScreen extends StatelessWidget {
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
                       fontFamily: 'monospace')),
-              Text('⬤ ${state.gold}',
-                  style: const TextStyle(
-                      color: Color(0xFFEF9F27),
-                      fontSize: 13,
-                      fontFamily: 'monospace')),
+              GestureDetector(
+                onTap: () => onOpenShop(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFFEF9F27)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text('⬤ ${state.gold}  +',
+                      style: const TextStyle(
+                          color: Color(0xFFEF9F27),
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace')),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -39,7 +51,8 @@ class UpgradeScreen extends StatelessWidget {
             child: ListView.separated(
               itemCount: upgradeDefs.length,
               separatorBuilder: (_, __) => const SizedBox(height: 6),
-              itemBuilder: (ctx, i) => _UpgradeCard(def: upgradeDefs[i]),
+              itemBuilder: (ctx, i) =>
+                  _UpgradeCard(def: upgradeDefs[i], onOpenShop: onOpenShop),
             ),
           ),
           const SizedBox(height: 12),
@@ -57,7 +70,8 @@ class UpgradeScreen extends StatelessWidget {
 
 class _UpgradeCard extends StatelessWidget {
   final UpgradeDef def;
-  const _UpgradeCard({required this.def});
+  final void Function([String? hint]) onOpenShop;
+  const _UpgradeCard({required this.def, required this.onOpenShop});
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +140,13 @@ class _UpgradeCard extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           GestureDetector(
-            onTap: canAfford ? () => state.buyUpgrade(def.id) : null,
+            // Sem ouro suficiente, o toque leva à loja dizendo quanto falta.
+            onTap: canAfford
+                ? () => state.buyUpgrade(def.id)
+                : next == null
+                    ? null
+                    : () => onOpenShop(l.needGoldFor(
+                        next.cost - state.gold, l.upgradeLabel(def.id))),
             child: Container(
               padding:
                   const EdgeInsets.symmetric(horizontal: 8, vertical: 5),

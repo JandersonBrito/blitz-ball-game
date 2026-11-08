@@ -22,6 +22,7 @@ import '../models/element.dart';
 import '../services/ad_service_mobile.dart';
 import '../services/audio_service.dart';
 import '../services/haptic_service.dart';
+import '../services/purchase_service.dart';
 
 enum GamePhase { menu, aim, shooting, returning, gameOver, stageComplete }
 
@@ -453,8 +454,9 @@ class BallzFlameGame extends FlameGame {
             AudioService.instance.playBreak();
             HapticService.instance.blockBreak();
             if (block.goldValue > 0)
-              gameState.addGold(
-                  block.isBoss ? block.goldValue * 2 : block.goldValue);
+              gameState.earnGold(
+                  block.isBoss ? block.goldValue * 2 : block.goldValue,
+                  multiplier: PurchaseService.instance.goldMultiplier);
             gameState.addScore(block.isBoss ? 20 : 3);
             final wasBoss = block.isBoss;
             blocks.removeAt(bi);

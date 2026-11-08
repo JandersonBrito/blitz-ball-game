@@ -14,6 +14,7 @@ import 'game_over_overlay.dart';
 import 'stage_complete_overlay.dart';
 import 'settings_screen.dart';
 import 'help_offer_overlay.dart';
+import 'shop_screen.dart';
 
 class GameScreen extends StatefulWidget {
   final GameState gameState;
@@ -29,6 +30,8 @@ class _GameScreenState extends State<GameScreen> {
   bool _isPaused = false;
   bool _showPauseSettings = false;
   bool _bannerLoaded = false;
+  bool _showShop = false;
+  String? _shopHint;
 
   // Wave toast state
   bool _waveToastVisible = false;
@@ -45,7 +48,10 @@ class _GameScreenState extends State<GameScreen> {
     _gameState.addListener(_onGameStateChange);
     AdService.instance.addListener(_onAdsChange);
     PurchaseService.instance.addListener(_onAdsChange);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkConsent());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkConsent();
+      _claimPurchasedGold();
+    });
   }
 
   Future<void> _checkConsent() async {
@@ -68,7 +74,36 @@ class _GameScreenState extends State<GameScreen> {
 
   void _onAdsChange() {
     if (mounted) setState(() {});
+    _claimPurchasedGold();
   }
+
+  bool _claiming = false;
+
+  /// Passa o ouro comprado na loja para o jogo e avisa o jogador.
+  Future<void> _claimPurchasedGold() async {
+    if (_claiming || PurchaseService.instance.pendingGold == 0) return;
+    _claiming = true;
+    final amount = await PurchaseService.instance.claimPendingGold();
+    _claiming = false;
+    if (amount == 0 || !mounted) return;
+    _gameState.addGold(amount);
+    final l = context.read<SettingsService>().l10n;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(l.goldAdded(amount),
+          style: const TextStyle(
+              fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+      backgroundColor: const Color(0xFF1D9E75),
+    ));
+  }
+
+  void _openShop([String? hint]) {
+    setState(() {
+      _showShop = true;
+      _shopHint = hint;
+    });
+  }
+
+  void _closeShop() => setState(() => _showShop = false);
 
   void _onGameStateChange() {
     if (_gameState.showWaveToast && !_waveToastVisible) {
@@ -234,7 +269,9 @@ class _GameScreenState extends State<GameScreen> {
                           return const SizedBox.shrink();
                         }
                         return Positioned.fill(
-                          child: MenuOverlay(onStartWave: _handleStartWave),
+                          child: MenuOverlay(
+                              onStartWave: _handleStartWave,
+                              onOpenShop: _openShop),
                         );
                       },
                     ),
@@ -347,6 +384,7 @@ class _GameScreenState extends State<GameScreen> {
                             gold: state.gold,
                             onNextStage: _handleNextStage,
                             onMenu: _handleStageCompleteMenu,
+                            onOpenShop: _openShop,
                           ),
                         );
                       },
@@ -374,6 +412,7 @@ class _GameScreenState extends State<GameScreen> {
                         return Positioned.fill(
                           child: GameOverOverlay(
                             onRestart: _handleRestart,
+                            onOpenShop: _openShop,
                             onWatchAd: _canContinueAfterAd
                                 ? _handleContinueAfterAd
                                 : null,
@@ -381,6 +420,15 @@ class _GameScreenState extends State<GameScreen> {
                         );
                       },
                     ),
+
+                    // Loja: fica acima de tudo para abrir de qualquer tela
+                    if (_showShop)
+                      Positioned.fill(
+                        child: Container(
+                          color: const Color(0xF20A0A14),
+                          child: ShopScreen(onBack: _closeShop, hint: _shopHint),
+                        ),
+                      ),
                   ],
                 ),
               ),
