@@ -21,16 +21,19 @@ class GamesCloudService extends ChangeNotifier {
   String? _lastError;
   String? get lastError => _lastError;
 
-  /// Login silencioso no startup. Falhas são ignoradas — usuário pode tentar manualmente.
+  /// Verificação silenciosa no startup: só consulta se o Play Games já
+  /// autenticou o jogador (o SDK v2 faz isso sozinho na abertura).
+  /// Não chama signIn() aqui — no Android ele abre o seletor de conta.
+  /// O login interativo fica só no botão das configurações.
   Future<void> initialize() async {
     if (kIsWeb) return;
     try {
-      await GamesServices.signIn();
-      _signedIn = true;
-      notifyListeners();
+      _signedIn = await GamesServices.isSignedIn
+          .timeout(const Duration(seconds: 10), onTimeout: () => false);
     } catch (_) {
       _signedIn = false;
     }
+    notifyListeners();
   }
 
   /// Login explícito acionado pelo usuário. Retorna true em caso de sucesso.

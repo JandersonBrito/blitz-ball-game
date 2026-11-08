@@ -1,7 +1,7 @@
 name: ballz_flutter
 description: Brick breaker with elements, upgrades and boss fights.
 publish_to: 'none'
-version: 1.0.2+5
+version: 1.0.3+6
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -15,6 +15,7 @@ dependencies:
   unity_ads_plugin: ^0.6.0
   in_app_purchase: ^3.2.0
   games_services: ^4.0.1
+  flame_audio: ^2.12.2
 
 dev_dependencies:
   flutter_test:
@@ -32,3 +33,11 @@ flutter:
   uses-material-design: true
   assets:
     - assets/adi-registration.properties
+    # Áudio: listado arquivo a arquivo para não empacotar arquivos não usados
+    - assets/audio/music_loop_long.ogg
+    - assets/audio/hit_1.wav
+    - assets/audio/hit_2.wav
+    - assets/audio/hit_3.wav
+    - assets/audio/hit_4.wav
+    - assets/audio/block_break.wav
+    - assets/audio/wall_bounce.wav

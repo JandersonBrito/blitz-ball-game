@@ -106,9 +106,18 @@ class _UpgradeCard extends StatelessWidget {
                   ],
                 ),
                 Text(
-                  maxed ? l.maxLevel : next!.desc,
+                  l.upgradeDesc(def.id),
                   style: const TextStyle(
-                      color: Colors.white38,
+                      color: Colors.white54,
+                      fontSize: 9,
+                      fontFamily: 'monospace'),
+                ),
+                Text(
+                  maxed
+                      ? '${l.upgradeValue(def.id, def.levels.last.value)} · ${l.maxLevel}'
+                      : '${l.upgradeValue(def.id, lvl == 0 ? null : def.levels[lvl - 1].value)} → ${l.upgradeValue(def.id, next!.value)}',
+                  style: TextStyle(
+                      color: maxed ? Colors.white38 : def.color,
                       fontSize: 9,
                       fontFamily: 'monospace'),
                 ),

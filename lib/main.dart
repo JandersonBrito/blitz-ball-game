@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'services/settings_service.dart';
+import 'services/audio_service.dart';
 import 'services/ad_service.dart';
 import 'services/purchase_service.dart';
 import 'services/consent_service.dart';
@@ -32,6 +33,8 @@ void main() async {
   ));
 
   final settings = await SettingsService.load();
+  // Carrega em paralelo à abertura; o jogo funciona mudo até ficar pronto.
+  unawaited(AudioService.instance.init(settings));
   final gameState = await GameState.load();
 
   runApp(BallzApp(settings: settings, gameState: gameState));

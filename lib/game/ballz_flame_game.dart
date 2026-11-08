@@ -10,6 +10,7 @@ import 'managers/game_state.dart';
 import 'managers/block_factory.dart';
 import '../models/element.dart';
 import '../services/ad_service_mobile.dart';
+import '../services/audio_service.dart';
 
 enum GamePhase { menu, aim, shooting, returning, gameOver, stageComplete }
 
@@ -24,6 +25,7 @@ class BallzFlameGame extends FlameGame {
   static const int cols = 9;
   static const int rows = 13;
   static const double ballSpeed = 550.0;
+  static const double baseAimLength = 160.0; // px de mira sem upgrade
   static const double ballRadius = 5.0;
 
   late double floorY;
@@ -230,14 +232,17 @@ class BallzFlameGame extends FlameGame {
       if (ball.position.x - ballRadius <= 1) {
         ball.position.x = ballRadius + 1;
         ball.velocity.x = ball.velocity.x.abs();
+        AudioService.instance.playWall();
       }
       if (ball.position.x + ballRadius >= canvasW - 1) {
         ball.position.x = canvasW - ballRadius - 1;
         ball.velocity.x = -ball.velocity.x.abs();
+        AudioService.instance.playWall();
       }
       if (ball.position.y - ballRadius <= topOffset) {
         ball.position.y = topOffset + ballRadius;
         ball.velocity.y = ball.velocity.y.abs();
+        AudioService.instance.playWall();
       }
 
       // floor
@@ -294,6 +299,7 @@ class BallzFlameGame extends FlameGame {
       switch (block.type) {
         case BlockType.bonus:
           blocks.removeAt(bi);
+          AudioService.instance.playBreak();
           gameState.incrementBallCount();
           shotQueue.insert(0, _ShotEntry(
             dx: ball.velocity.x / ballSpeed * ballSpeed,
@@ -304,6 +310,7 @@ class BallzFlameGame extends FlameGame {
 
         case BlockType.triple:
           blocks.removeAt(bi);
+          AudioService.instance.playBreak();
           // Sort remaining blocks by distance from ball and aim each new ball at a different block
           final candidates = List<BlockComponent>.from(blocks)
             ..sort((a, b) {
@@ -338,6 +345,7 @@ class BallzFlameGame extends FlameGame {
             for (final s in shotQueue) s.el = block.elemPowerEl!;
           }
           blocks.removeAt(bi);
+          AudioService.instance.playBreak();
           break;
 
         case BlockType.wall:
@@ -356,17 +364,21 @@ class BallzFlameGame extends FlameGame {
               if (!block.isAlive) {
                 blocks.removeAt(bi);
                 gameState.addScore(10);
+                AudioService.instance.playBreak();
               } else {
+                AudioService.instance.playHit();
                 ball.velocity.y = -ball.velocity.y;
                 ball.position.y = bTop - ballRadius - 1;
               }
             } else {
               // Wrong element — reflects like the front face
+              AudioService.instance.playWall();
               ball.velocity.y = -ball.velocity.y;
               ball.position.y = bTop - ballRadius - 1;
             }
           } else {
             // Front or sides — reflect without damage
+            AudioService.instance.playWall();
             if (wOverlapX < wOverlapY) {
               ball.velocity.x = -ball.velocity.x;
               ball.position.x = ball.position.x < (bLeft + bRight) / 2
@@ -391,6 +403,7 @@ class BallzFlameGame extends FlameGame {
           gameState.addScore(1);
 
           if (!block.isAlive) {
+            AudioService.instance.playBreak();
             if (block.goldValue > 0) gameState.addGold(block.isBoss ? block.goldValue * 2 : block.goldValue);
             gameState.addScore(block.isBoss ? 20 : 3);
             final wasBoss = block.isBoss;
@@ -403,6 +416,7 @@ class BallzFlameGame extends FlameGame {
               return;
             }
           } else {
+            AudioService.instance.playHit();
             if (isCrit) block.triggerShake();
             // bounce + push ball out of block to prevent multi-frame hits
             final overlapX = min((ball.position.x - bLeft).abs(), (ball.position.x - bRight).abs());
@@ -517,7 +531,7 @@ class BallzFlameGame extends FlameGame {
     final elColor = elementDataMap[gameState.ballElement]?.ballColor ?? const Color(0xFFFFFFFF);
     final aimBonus = gameState.aimBonus;
     final maxBounces = gameState.maxBounces;
-    final aimLen = (55 + aimBonus) / 3;
+    final aimLen = (baseAimLength + aimBonus) / 3;
 
     final dashPath = Path();
     void drawSeg(double sx, double sy, double dx, double dy, int bounceIdx) {

@@ -132,13 +132,13 @@ class GameState extends ChangeNotifier {
   }
 
   double calcElemMult(ElementType atk, ElementType def) {
-    // wind bypass
+    double m = getElementMult(atk, def);
+    // wind bypass: só ignora a desvantagem, nunca remove a vantagem
     final windLvl = upgrades['upg_wind'] ?? 0;
-    if (atk == ElementType.wind && windLvl > 0) {
+    if (atk == ElementType.wind && m < 1 && windLvl > 0) {
       final bypass = upgradeDefs.firstWhere((u) => u.id == 'upg_wind').levels[windLvl - 1].value;
       if (Random().nextDouble() < bypass) return 1.0;
     }
-    double m = getElementMult(atk, def);
     final fireLvl = upgrades['upg_fire'] ?? 0;
     if (atk == ElementType.fire && m > 1 && fireLvl > 0) {
       m = upgradeDefs.firstWhere((u) => u.id == 'upg_fire').levels[fireLvl - 1].value;

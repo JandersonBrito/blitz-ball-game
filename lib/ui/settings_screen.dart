@@ -238,28 +238,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
 
-          // Volume slider
+          // Volumes separados: música e efeitos
           if (settings.soundEnabled) ...[
             const SizedBox(height: 16),
-            Text(l.settingsVolume,
-                style: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 10,
-                    letterSpacing: 1,
-                    fontFamily: 'monospace')),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                activeTrackColor: const Color(0xFF1D9E75),
-                inactiveTrackColor: Colors.white12,
-                thumbColor: const Color(0xFF1D9E75),
-                overlayColor: const Color(0x221D9E75),
-              ),
-              child: Slider(
-                value: settings.volume,
-                min: 0,
-                max: 1,
-                onChanged: settings.setVolume,
-              ),
+            _VolumeSlider(
+              label: l.settingsMusic,
+              value: settings.musicVolume,
+              onChanged: settings.setMusicVolume,
+            ),
+            const SizedBox(height: 8),
+            _VolumeSlider(
+              label: l.settingsSfx,
+              value: settings.sfxVolume,
+              onChanged: settings.setSfxVolume,
             ),
           ],
 
@@ -595,6 +586,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _VolumeSlider extends StatelessWidget {
+  final String label;
+  final double value;
+  final ValueChanged<double> onChanged;
+  const _VolumeSlider({required this.label, required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label,
+            style: const TextStyle(
+                color: Colors.white38,
+                fontSize: 10,
+                letterSpacing: 1,
+                fontFamily: 'monospace')),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: const Color(0xFF1D9E75),
+            inactiveTrackColor: Colors.white12,
+            thumbColor: const Color(0xFF1D9E75),
+            overlayColor: const Color(0x221D9E75),
+          ),
+          child: Slider(value: value, min: 0, max: 1, onChanged: onChanged),
+        ),
+      ],
     );
   }
 }

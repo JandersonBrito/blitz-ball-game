@@ -102,6 +102,49 @@ class L10n {
     return t != null ? _t(t) : id;
   }
 
+  /// O que o upgrade faz, em linguagem de jogador.
+  String upgradeDesc(String id) {
+    const map = <String, List<String>>{
+      'aim':       ['Linha de mira mais longa', 'Longer aiming line', 'Línea de mira más larga', 'Ligne de visée plus longue'],
+      'balls':     ['Bolas no início de cada fase', 'Balls at the start of each stage', 'Bolas al inicio de cada etapa', 'Balles au début de chaque niveau'],
+      'power':     ['Dano de cada acerto', 'Damage per hit', 'Daño por golpe', 'Dégâts par coup'],
+      'crit':      ['Chance de causar dano dobrado', 'Chance to deal double damage', 'Probabilidad de daño doble', 'Chance d\'infliger double dégâts'],
+      'upg_fire':  ['Dano do Fogo contra Vento (vantagem)', 'Fire damage vs Wind (advantage)', 'Daño de Fuego contra Viento (ventaja)', 'Dégâts du Feu contre le Vent (avantage)'],
+      'upg_water': ['Dano da Água contra Vento (desvantagem)', 'Water damage vs Wind (disadvantage)', 'Daño de Agua contra Viento (desventaja)', 'Dégâts de l\'Eau contre le Vent (désavantage)'],
+      'upg_wind':  ['Chance do Vento ignorar desvantagem', 'Chance for Wind to ignore disadvantage', 'Probabilidad de que el Viento ignore la desventaja', 'Chance que le Vent ignore le désavantage'],
+      'bounce':    ['Quiques extras mostrados na mira', 'Extra bounces shown on the aim line', 'Rebotes extra mostrados en la mira', 'Rebonds supplémentaires sur la visée'],
+    };
+    final t = map[id];
+    return t != null ? _t(t) : '';
+  }
+
+  /// Valor efetivo do upgrade, formatado. [value] é o valor do nível
+  /// (null = nível 0, sem upgrade).
+  String upgradeValue(String id, double? value) {
+    String pct(double v) => '${(v * 100).round()}%';
+    switch (id) {
+      case 'aim':
+        return '+${(value ?? 0).round()}';
+      case 'balls':
+        final n = value == null ? 1 : value.toInt() + 1;
+        return '$n ${_t(n == 1 ? ['bola', 'ball', 'bola', 'balle'] : ['bolas', 'balls', 'bolas', 'balles'])}';
+      case 'power':
+        return '${(value ?? 1).toInt()}';
+      case 'crit':
+        return pct(value ?? 0);
+      case 'upg_fire':
+        return pct(value ?? 1.5);
+      case 'upg_water':
+        return pct(value ?? 0.5);
+      case 'upg_wind':
+        return pct(value ?? 0);
+      case 'bounce':
+        return '${(value ?? 0).toInt()}';
+      default:
+        return value?.toString() ?? '-';
+    }
+  }
+
   // ── Stage Complete ────────────────────────────────────────────────────────
   String stageCompleteTitle(int s) {
     final label = _t(['FASE', 'STAGE', 'ETAPA', 'NIVEAU']);
@@ -137,6 +180,8 @@ class L10n {
   String get settingsLanguage => _t(['Idioma', 'Language', 'Idioma', 'Langue']);
   String get settingsSound    => _t(['Som', 'Sound', 'Sonido', 'Son']);
   String get settingsVolume   => _t(['Volume', 'Volume', 'Volumen', 'Volume']);
+  String get settingsMusic    => _t(['Música', 'Music', 'Música', 'Musique']);
+  String get settingsSfx      => _t(['Efeitos sonoros', 'Sound effects', 'Efectos de sonido', 'Effets sonores']);
 
   // ── Tutorial ──────────────────────────────────────────────────────────────
   String get tutorialBtn =>   _t(['? Tutorial', '? Tutorial', '? Tutorial', '? Tutoriel']);
@@ -183,16 +228,16 @@ class L10n {
   ]);
   List<List<String>> get tutSlide2Items => [
     ['🟣', _t(['+1 Bola', '+1 Ball', '+1 Bola', '+1 Balle']),
-          _t(['Aumenta permanentemente sua contagem de bolas',
-              'Permanently increases your ball count',
-              'Aumenta permanentemente tu conteo de bolas',
-              'Augmente définitivement votre nombre de balles'])],
+          _t(['Ganha +1 bola até o fim da fase atual',
+              'Gain +1 ball until the end of the current stage',
+              'Gana +1 bola hasta el final de la etapa actual',
+              'Gagnez +1 balle jusqu\'à la fin du niveau en cours'])],
     ['🟠', _t(['Ouro', 'Gold', 'Oro', 'Or']),
           _t(['Recompensa moedas para comprar upgrades',
               'Rewards coins to buy upgrades',
               'Recompensa monedas para comprar mejoras',
               'Récompense des pièces pour acheter des améliorations'])],
-    ['⬜', _t(['Triplicar', 'Triple', 'Triplicar', 'Triple']),
+    ['⬜', _t(['Quadruplicar', 'Quadruple', 'Cuadruplicar', 'Quadrupler']),
           _t(['Divide a bola em 4 ao ser atingida',
               'Splits the ball into 4 when hit',
               'Divide la bola en 4 al ser golpeada',
@@ -294,10 +339,10 @@ class L10n {
 
   // ── Legend ────────────────────────────────────────────────────────────────
   String get legend => _t([
-    'Aponte e toque  ●=+1 bola  ⬤=ouro  ⊙=triplicar',
-    'Aim and tap  ●=+1 ball  ⬤=gold  ⊙=triple',
-    'Apunta y toca  ●=+1 bola  ⬤=oro  ⊙=triplicar',
-    'Vise et touche  ●=+1 balle  ⬤=or  ⊙=tripler',
+    'Aponte e toque  ●=+1 bola  ⬤=ouro  ⊙=quadruplicar',
+    'Aim and tap  ●=+1 ball  ⬤=gold  ⊙=quadruple',
+    'Apunta y toca  ●=+1 bola  ⬤=oro  ⊙=cuadruplicar',
+    'Vise et touche  ●=+1 balle  ⬤=or  ⊙=quadrupler',
   ]);
 
   // ── Consentimento, compras, nuvem e ajuda ─────────────────────────────────
