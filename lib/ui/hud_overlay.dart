@@ -73,6 +73,35 @@ class HudOverlay extends StatelessWidget {
             ),
             const SizedBox(width: 8),
 
+            // 2x — só aparece depois de desbloqueado na loja
+            if (state.speedUnlocked) ...[
+              GestureDetector(
+                onTap: state.toggleFastForward,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: state.fastForward
+                        ? const Color(0xFFEF9F27)
+                        : Colors.transparent,
+                    border: Border.all(
+                        color: state.fastForward
+                            ? const Color(0xFFEF9F27)
+                            : Colors.white30),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(state.fastForward ? '▶▶ 2x' : '▶▶',
+                      style: TextStyle(
+                          color: state.fastForward
+                              ? Colors.black
+                              : Colors.white54,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace')),
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
+
             // pause button — always visible, never pushed out
             GestureDetector(
               onTap: onPause,

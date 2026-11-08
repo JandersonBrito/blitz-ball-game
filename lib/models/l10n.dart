@@ -97,6 +97,7 @@ class L10n {
       'upg_water': ['Água+',         'Water+',         'Agua+',          'Eau+'],
       'upg_wind':  ['Vento+',        'Wind+',          'Viento+',        'Vent+'],
       'bounce':    ['Ricochete',     'Bounce',         'Rebote',         'Rebond'],
+      'speed':     ['Acelerar',      'Fast Forward',   'Acelerar',       'Accélérer'],
     };
     final t = map[id];
     return t != null ? _t(t) : id;
@@ -113,6 +114,7 @@ class L10n {
       'upg_water': ['Dano da Água contra Vento (desvantagem)', 'Water damage vs Wind (disadvantage)', 'Daño de Agua contra Viento (desventaja)', 'Dégâts de l\'Eau contre le Vent (désavantage)'],
       'upg_wind':  ['Chance do Vento ignorar desvantagem', 'Chance for Wind to ignore disadvantage', 'Probabilidad de que el Viento ignore la desventaja', 'Chance que le Vent ignore le désavantage'],
       'bounce':    ['Quiques extras mostrados na mira', 'Extra bounces shown on the aim line', 'Rebotes extra mostrados en la mira', 'Rebonds supplémentaires sur la visée'],
+      'speed':     ['Botão ▶▶ no jogo: rodada em 2x', 'In-game ▶▶ button: round at 2x', 'Botón ▶▶ en el juego: ronda a 2x', 'Bouton ▶▶ en jeu : manche en 2x'],
     };
     final t = map[id];
     return t != null ? _t(t) : '';
@@ -140,6 +142,8 @@ class L10n {
         return pct(value ?? 0);
       case 'bounce':
         return '${(value ?? 0).toInt()}';
+      case 'speed':
+        return '${(value ?? 1).toInt()}x';
       default:
         return value?.toString() ?? '-';
     }
@@ -181,6 +185,7 @@ class L10n {
   String get settingsSound    => _t(['Som', 'Sound', 'Sonido', 'Son']);
   String get settingsVolume   => _t(['Volume', 'Volume', 'Volumen', 'Volume']);
   String get settingsMusic    => _t(['Música', 'Music', 'Música', 'Musique']);
+  String get settingsVibration => _t(['Vibração', 'Vibration', 'Vibración', 'Vibration']);
   String get settingsSfx      => _t(['Efeitos sonoros', 'Sound effects', 'Efectos de sonido', 'Effets sonores']);
 
   // ── Tutorial ──────────────────────────────────────────────────────────────

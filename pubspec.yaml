@@ -16,6 +16,7 @@ dependencies:
   in_app_purchase: ^3.2.0
   games_services: ^4.0.1
   flame_audio: ^2.12.2
+  vibration: ^3.2.1
 
 dev_dependencies:
   flutter_test:

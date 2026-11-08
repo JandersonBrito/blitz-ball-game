@@ -37,4 +37,6 @@ const List<UpgradeDef> upgradeDefs = [
     levels:[UpgradeLevel(cost:120,value:0.10,desc:'10%'),UpgradeLevel(cost:300,value:0.20,desc:'20%'),UpgradeLevel(cost:600,value:0.35,desc:'35%'),UpgradeLevel(cost:1000,value:0.50,desc:'50%'),UpgradeLevel(cost:1600,value:0.75,desc:'75%')]),
   UpgradeDef(id:'bounce', label:'Ricochete', icon:'↗', color:Color(0xFFAFA9EC), desc:'Ricochetes na mira',
     levels:[UpgradeLevel(cost:150,value:1,desc:'1 ricochete'),UpgradeLevel(cost:400,value:2,desc:'2 ricochetes'),UpgradeLevel(cost:800,value:3,desc:'3 ricochetes')]),
+  UpgradeDef(id:'speed', label:'Acelerar', icon:'⏩', color:Color(0xFFEF9F27), desc:'Desbloqueia o botão 2x',
+    levels:[UpgradeLevel(cost:10000,value:2,desc:'2x')]),
 ];

@@ -201,6 +201,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 24),
 
+          // Vibration toggle
+          Text(l.settingsVibration,
+              style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 10,
+                  letterSpacing: 1,
+                  fontFamily: 'monospace')),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () => settings.setVibrationEnabled(!settings.vibrationEnabled),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: settings.vibrationEnabled
+                    ? const Color(0xFF1D9E75)
+                    : Colors.transparent,
+                border: Border.all(
+                    color: settings.vibrationEnabled
+                        ? const Color(0xFF1D9E75)
+                        : Colors.white24),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                settings.vibrationEnabled ? '📳 On' : '📴 Off',
+                style: TextStyle(
+                  color: settings.vibrationEnabled
+                      ? Colors.white
+                      : Colors.white38,
+                  fontSize: 12,
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
           // Sound toggle
           Text(l.settingsSound,
               style: const TextStyle(

@@ -11,12 +11,14 @@ class SettingsService extends ChangeNotifier {
   static const _keyMusicVolume = 'music_volume';
   static const _keySfxVolume = 'sfx_volume';
   static const _keyTutorialSeen = 'tutorial_seen';
+  static const _keyVibration = 'vibration_enabled';
 
   AppLanguage _language;
   bool _soundEnabled;
   double _musicVolume;
   double _sfxVolume;
   bool _tutorialSeen;
+  bool _vibrationEnabled;
 
   SettingsService._({
     required AppLanguage language,
@@ -24,11 +26,13 @@ class SettingsService extends ChangeNotifier {
     required double musicVolume,
     required double sfxVolume,
     required bool tutorialSeen,
+    required bool vibrationEnabled,
   })  : _language = language,
         _soundEnabled = soundEnabled,
         _musicVolume = musicVolume,
         _sfxVolume = sfxVolume,
-        _tutorialSeen = tutorialSeen;
+        _tutorialSeen = tutorialSeen,
+        _vibrationEnabled = vibrationEnabled;
 
   /// O consentimento aparece antes de o jogador poder escolher o idioma.
   static AppLanguage languageForCode(String code) => AppLanguage.values.firstWhere(
@@ -51,6 +55,7 @@ class SettingsService extends ChangeNotifier {
       musicVolume: musicVolume,
       sfxVolume: sfxVolume,
       tutorialSeen: tutorialSeen,
+      vibrationEnabled: prefs.getBool(_keyVibration) ?? true,
     );
   }
 
@@ -59,6 +64,7 @@ class SettingsService extends ChangeNotifier {
   double get musicVolume => _musicVolume;
   double get sfxVolume => _sfxVolume;
   bool get tutorialSeen => _tutorialSeen;
+  bool get vibrationEnabled => _vibrationEnabled;
   L10n get l10n => L10n(_language);
 
   Future<void> markTutorialSeen() async {
@@ -70,6 +76,12 @@ class SettingsService extends ChangeNotifier {
 
   void setLanguage(AppLanguage value) => language = value;
   void setSoundEnabled(bool value) => soundEnabled = value;
+  void setVibrationEnabled(bool value) {
+    if (_vibrationEnabled == value) return;
+    _vibrationEnabled = value;
+    _save();
+    notifyListeners();
+  }
   void setMusicVolume(double value) => musicVolume = value;
   void setSfxVolume(double value) => sfxVolume = value;
 
@@ -109,5 +121,6 @@ class SettingsService extends ChangeNotifier {
     await prefs.setBool(_keySoundEnabled, _soundEnabled);
     await prefs.setDouble(_keyMusicVolume, _musicVolume);
     await prefs.setDouble(_keySfxVolume, _sfxVolume);
+    await prefs.setBool(_keyVibration, _vibrationEnabled);
   }
 }

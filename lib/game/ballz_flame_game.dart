@@ -3,7 +3,17 @@ import 'dart:ui';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
-import 'package:flutter/material.dart' show Colors, Color, Offset, Paint, PaintingStyle, TextDirection, TextSpan, TextStyle, TextPainter;
+import 'package:flutter/material.dart'
+    show
+        Colors,
+        Color,
+        Offset,
+        Paint,
+        PaintingStyle,
+        TextDirection,
+        TextSpan,
+        TextStyle,
+        TextPainter;
 import 'components/block_component.dart';
 import 'components/ball_component.dart';
 import 'managers/game_state.dart';
@@ -11,6 +21,7 @@ import 'managers/block_factory.dart';
 import '../models/element.dart';
 import '../services/ad_service_mobile.dart';
 import '../services/audio_service.dart';
+import '../services/haptic_service.dart';
 
 enum GamePhase { menu, aim, shooting, returning, gameOver, stageComplete }
 
@@ -59,7 +70,8 @@ class BallzFlameGame extends FlameGame {
 
   void _loadBlocks() {
     blocks.clear();
-    final isBoss = gameState.isBossStage && gameState.waveInStage == gameState.wavesInStage;
+    final isBoss = gameState.isBossStage &&
+        gameState.waveInStage == gameState.wavesInStage;
     final isCorridor = gameState.isCorridorStage && gameState.waveInStage == 1;
     final newBlocks = isBoss
         ? initBossStage(gameState.stage)
@@ -99,8 +111,10 @@ class BallzFlameGame extends FlameGame {
     for (int i = 0; i < activeBalls.length; i++) {
       final b = activeBalls[i];
       returningBalls.add(_ReturningBall(
-        sx: b.position.x, sy: b.position.y,
-        ex: targetX, ey: floorY,
+        sx: b.position.x,
+        sy: b.position.y,
+        ex: targetX,
+        ey: floorY,
         cpx: (b.position.x + targetX) / 2,
         cpy: min(b.position.y, floorY) - 120 - (i % 4) * 35,
         el: b.element,
@@ -130,7 +144,9 @@ class BallzFlameGame extends FlameGame {
   void _finishRound() {
     originX = returnTargetX ?? size.x / 2;
     returningBalls.clear();
-    landed = 0; firstLandX = null; returnTargetX = null;
+    landed = 0;
+    firstLandX = null;
+    returnTargetX = null;
 
     // interstitial ad every 10 rounds, if AdService's time limits allow it
     if (gameState.incrementTotalRounds()) {
@@ -149,8 +165,14 @@ class BallzFlameGame extends FlameGame {
       return;
     }
 
-    const clearableTypes = {BlockType.bonus, BlockType.triple, BlockType.elemPower, BlockType.wall};
-    if (blocks.isNotEmpty && blocks.every((b) => clearableTypes.contains(b.type))) {
+    const clearableTypes = {
+      BlockType.bonus,
+      BlockType.triple,
+      BlockType.elemPower,
+      BlockType.wall
+    };
+    if (blocks.isNotEmpty &&
+        blocks.every((b) => clearableTypes.contains(b.type))) {
       blocks.clear();
     }
 
@@ -180,7 +202,8 @@ class BallzFlameGame extends FlameGame {
       phase = GamePhase.menu;
     } else {
       // Blocks remain — wave continues, spawn only power-up blocks at top
-      gameState.incrementStageRounds(canOfferHelp: AdService.instance.isRewardedReady);
+      gameState.incrementStageRounds(
+          canOfferHelp: AdService.instance.isRewardedReady);
       _spawnPowerUpRow();
       phase = GamePhase.aim;
     }
@@ -193,15 +216,20 @@ class BallzFlameGame extends FlameGame {
 
     for (final b in blocks) b.updateShake(dt);
 
-    switch (phase) {
-      case GamePhase.shooting:
-        _updateShooting(dt);
-        break;
-      case GamePhase.returning:
-        _updateReturning(dt);
-        break;
-      default:
-        break;
+    // 2x: roda dois passos de física por frame em vez de dobrar a
+    // velocidade, para as colisões continuarem precisas.
+    final steps = gameState.fastForwardActive ? 2 : 1;
+    for (int i = 0; i < steps; i++) {
+      switch (phase) {
+        case GamePhase.shooting:
+          _updateShooting(dt);
+          break;
+        case GamePhase.returning:
+          _updateReturning(dt);
+          break;
+        default:
+          break;
+      }
     }
   }
 
@@ -281,17 +309,19 @@ class BallzFlameGame extends FlameGame {
     }
   }
 
-  void _handleBlockCollisions(BallComponent ball, List<BallComponent> newBalls) {
+  void _handleBlockCollisions(
+      BallComponent ball, List<BallComponent> newBalls) {
     for (int bi = blocks.length - 1; bi >= 0; bi--) {
       final block = blocks[bi];
-      final bLeft   = block.position.x;
-      final bTop    = block.position.y;
-      final bRight  = bLeft + block.size.x;
-      final bBottom = bTop  + block.size.y;
+      final bLeft = block.position.x;
+      final bTop = block.position.y;
+      final bRight = bLeft + block.size.x;
+      final bBottom = bTop + block.size.y;
 
       final nearX = ball.position.x.clamp(bLeft, bRight);
       final nearY = ball.position.y.clamp(bTop, bBottom);
-      final dist  = sqrt(pow(ball.position.x - nearX, 2) + pow(ball.position.y - nearY, 2));
+      final dist = sqrt(
+          pow(ball.position.x - nearX, 2) + pow(ball.position.y - nearY, 2));
 
       if (dist >= ballRadius) continue;
 
@@ -300,25 +330,33 @@ class BallzFlameGame extends FlameGame {
         case BlockType.bonus:
           blocks.removeAt(bi);
           AudioService.instance.playBreak();
+          HapticService.instance.blockBreak();
           gameState.incrementBallCount();
-          shotQueue.insert(0, _ShotEntry(
-            dx: ball.velocity.x / ballSpeed * ballSpeed,
-            dy: ball.velocity.y / ballSpeed * ballSpeed,
-            el: ElementType.neutral,
-          ));
+          shotQueue.insert(
+              0,
+              _ShotEntry(
+                dx: ball.velocity.x / ballSpeed * ballSpeed,
+                dy: ball.velocity.y / ballSpeed * ballSpeed,
+                el: ElementType.neutral,
+              ));
           break;
 
         case BlockType.triple:
           blocks.removeAt(bi);
           AudioService.instance.playBreak();
+          HapticService.instance.blockBreak();
           // Sort remaining blocks by distance from ball and aim each new ball at a different block
           final candidates = List<BlockComponent>.from(blocks)
             ..sort((a, b) {
-              final da = sqrt(pow(a.position.x + a.size.x/2 - ball.position.x, 2) + pow(a.position.y + a.size.y/2 - ball.position.y, 2));
-              final db = sqrt(pow(b.position.x + b.size.x/2 - ball.position.x, 2) + pow(b.position.y + b.size.y/2 - ball.position.y, 2));
+              final da = sqrt(
+                  pow(a.position.x + a.size.x / 2 - ball.position.x, 2) +
+                      pow(a.position.y + a.size.y / 2 - ball.position.y, 2));
+              final db = sqrt(
+                  pow(b.position.x + b.size.x / 2 - ball.position.x, 2) +
+                      pow(b.position.y + b.size.y / 2 - ball.position.y, 2));
               return da.compareTo(db);
             });
-          const fallbackAngles = [-pi/3, -pi/6, pi/6, pi/3];
+          const fallbackAngles = [-pi / 3, -pi / 6, pi / 6, pi / 3];
           final baseAng = atan2(ball.velocity.y, ball.velocity.x);
           for (int i = 0; i < 4; i++) {
             double targetAng;
@@ -331,7 +369,8 @@ class BallzFlameGame extends FlameGame {
             }
             newBalls.add(BallComponent(
               position: ball.position.clone(),
-              velocity: Vector2(cos(targetAng)*ballSpeed, sin(targetAng)*ballSpeed),
+              velocity: Vector2(
+                  cos(targetAng) * ballSpeed, sin(targetAng) * ballSpeed),
               element: ElementType.neutral,
             ));
           }
@@ -346,13 +385,17 @@ class BallzFlameGame extends FlameGame {
           }
           blocks.removeAt(bi);
           AudioService.instance.playBreak();
+          HapticService.instance.blockBreak();
           break;
 
         case BlockType.wall:
           // Determine which face was hit
-          final wOverlapX = min((ball.position.x - bLeft).abs(), (ball.position.x - bRight).abs());
-          final wOverlapY = min((ball.position.y - bTop).abs(),  (ball.position.y - bBottom).abs());
-          final hitFromBack = wOverlapY <= wOverlapX && ball.position.y < (bTop + bBottom) / 2;
+          final wOverlapX = min((ball.position.x - bLeft).abs(),
+              (ball.position.x - bRight).abs());
+          final wOverlapY = min((ball.position.y - bTop).abs(),
+              (ball.position.y - bBottom).abs());
+          final hitFromBack =
+              wOverlapY <= wOverlapX && ball.position.y < (bTop + bBottom) / 2;
           if (hitFromBack) {
             // Wall element check: only the counter-element destroys it
             // fire←water, water←wind, wind←fire  (mult > 1.0 = effective)
@@ -365,8 +408,10 @@ class BallzFlameGame extends FlameGame {
                 blocks.removeAt(bi);
                 gameState.addScore(10);
                 AudioService.instance.playBreak();
+                HapticService.instance.blockBreak();
               } else {
                 AudioService.instance.playHit();
+                HapticService.instance.hit();
                 ball.velocity.y = -ball.velocity.y;
                 ball.position.y = bTop - ballRadius - 1;
               }
@@ -395,16 +440,19 @@ class BallzFlameGame extends FlameGame {
 
         default:
           // damage
-          final baseDmg  = gameState.baseDamage;
+          final baseDmg = gameState.baseDamage;
           final elemMult = gameState.calcElemMult(ball.element, block.element);
-          final isCrit   = Random().nextDouble() < gameState.critChance;
-          final dmg      = (baseDmg * elemMult * (isCrit ? 2 : 1)).ceil();
+          final isCrit = Random().nextDouble() < gameState.critChance;
+          final dmg = (baseDmg * elemMult * (isCrit ? 2 : 1)).ceil();
           block.takeDamage(dmg);
           gameState.addScore(1);
 
           if (!block.isAlive) {
             AudioService.instance.playBreak();
-            if (block.goldValue > 0) gameState.addGold(block.isBoss ? block.goldValue * 2 : block.goldValue);
+            HapticService.instance.blockBreak();
+            if (block.goldValue > 0)
+              gameState.addGold(
+                  block.isBoss ? block.goldValue * 2 : block.goldValue);
             gameState.addScore(block.isBoss ? 20 : 3);
             final wasBoss = block.isBoss;
             blocks.removeAt(bi);
@@ -417,10 +465,13 @@ class BallzFlameGame extends FlameGame {
             }
           } else {
             AudioService.instance.playHit();
+            HapticService.instance.hit();
             if (isCrit) block.triggerShake();
             // bounce + push ball out of block to prevent multi-frame hits
-            final overlapX = min((ball.position.x - bLeft).abs(), (ball.position.x - bRight).abs());
-            final overlapY = min((ball.position.y - bTop).abs(),  (ball.position.y - bBottom).abs());
+            final overlapX = min((ball.position.x - bLeft).abs(),
+                (ball.position.x - bRight).abs());
+            final overlapY = min((ball.position.y - bTop).abs(),
+                (ball.position.y - bBottom).abs());
             if (overlapX < overlapY) {
               ball.velocity.x = -ball.velocity.x;
               ball.position.x = ball.position.x < (bLeft + bRight) / 2
@@ -443,8 +494,8 @@ class BallzFlameGame extends FlameGame {
     for (final rb in returningBalls) {
       rb.t = min(1.0, rb.t + dt * speed);
       final t = rb.t, mt = 1 - t;
-      rb.x = mt*mt*rb.sx + 2*mt*t*rb.cpx + t*t*rb.ex;
-      rb.y = mt*mt*rb.sy + 2*mt*t*rb.cpy + t*t*rb.ey;
+      rb.x = mt * mt * rb.sx + 2 * mt * t * rb.cpx + t * t * rb.ex;
+      rb.y = mt * mt * rb.sy + 2 * mt * t * rb.cpy + t * t * rb.ey;
       if (rb.t < 1) allArrived = false;
     }
     if (allArrived) _finishRound();
@@ -503,24 +554,32 @@ class BallzFlameGame extends FlameGame {
       Paint()..color = const Color(0xFF0a0a14),
     );
     // grid (começa abaixo do HUD)
-    final gridPaint = Paint()..color = const Color(0x0AFFFFFF)..strokeWidth = 0.5;
+    final gridPaint = Paint()
+      ..color = const Color(0x0AFFFFFF)
+      ..strokeWidth = 0.5;
     for (int c = 0; c <= cols; c++) {
-      canvas.drawLine(Offset(c * blockSize + 1, topOffset), Offset(c * blockSize + 1, floorY), gridPaint);
+      canvas.drawLine(Offset(c * blockSize + 1, topOffset),
+          Offset(c * blockSize + 1, floorY), gridPaint);
     }
     for (int r = 0; r <= rows; r++) {
-      canvas.drawLine(Offset(1, topOffset + r * blockSize), Offset(size.x - 1, topOffset + r * blockSize), gridPaint);
+      canvas.drawLine(Offset(1, topOffset + r * blockSize),
+          Offset(size.x - 1, topOffset + r * blockSize), gridPaint);
     }
     // floor line
     canvas.drawLine(
-      Offset(0, floorY), Offset(size.x, floorY),
-      Paint()..color = const Color(0x26FFFFFF)..strokeWidth = 1,
+      Offset(0, floorY),
+      Offset(size.x, floorY),
+      Paint()
+        ..color = const Color(0x26FFFFFF)
+        ..strokeWidth = 1,
     );
   }
 
   void _drawBlocks(Canvas canvas) {
     for (final b in blocks) {
       canvas.save();
-      canvas.translate(b.position.x + b.shakeOffsetX, b.position.y + b.shakeOffsetY);
+      canvas.translate(
+          b.position.x + b.shakeOffsetX, b.position.y + b.shakeOffsetY);
       b.render(canvas);
       canvas.restore();
     }
@@ -528,7 +587,8 @@ class BallzFlameGame extends FlameGame {
 
   void _drawAimLine(Canvas canvas) {
     if (phase != GamePhase.aim || aimAngle == null) return;
-    final elColor = elementDataMap[gameState.ballElement]?.ballColor ?? const Color(0xFFFFFFFF);
+    final elColor = elementDataMap[gameState.ballElement]?.ballColor ??
+        const Color(0xFFFFFFFF);
     final aimBonus = gameState.aimBonus;
     final maxBounces = gameState.maxBounces;
     final aimLen = (baseAimLength + aimBonus) / 3;
@@ -539,29 +599,48 @@ class BallzFlameGame extends FlameGame {
       double cx2 = sx, cy2 = sy, cdx = dx, cdy = dy;
       dashPath.moveTo(cx2, cy2);
       for (int i = 0; i < aimLen; i++) {
-        cx2 += cdx * 3; cy2 += cdy * 3;
+        cx2 += cdx * 3;
+        cy2 += cdy * 3;
         bool hit = false;
-        if (cx2 <= ballRadius + 1)           { cx2 = ballRadius + 1;           cdx =  cdx.abs(); hit = true; }
-        if (cx2 >= size.x - ballRadius - 1)  { cx2 = size.x - ballRadius - 1; cdx = -cdx.abs(); hit = true; }
-        if (cy2 <= topOffset + ballRadius)    { cy2 = topOffset + ballRadius;   cdy =  cdy.abs(); hit = true; }
+        if (cx2 <= ballRadius + 1) {
+          cx2 = ballRadius + 1;
+          cdx = cdx.abs();
+          hit = true;
+        }
+        if (cx2 >= size.x - ballRadius - 1) {
+          cx2 = size.x - ballRadius - 1;
+          cdx = -cdx.abs();
+          hit = true;
+        }
+        if (cy2 <= topOffset + ballRadius) {
+          cy2 = topOffset + ballRadius;
+          cdy = cdy.abs();
+          hit = true;
+        }
         if (cy2 >= floorY) break;
         dashPath.lineTo(cx2, cy2);
-        if (hit) { drawSeg(cx2, cy2, cdx, cdy, bounceIdx + 1); return; }
+        if (hit) {
+          drawSeg(cx2, cy2, cdx, cdy, bounceIdx + 1);
+          return;
+        }
       }
     }
 
     drawSeg(originX, floorY, cos(aimAngle!), sin(aimAngle!), 0);
-    canvas.drawPath(dashPath, Paint()
-      ..color = elColor.withOpacity(0.4)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5);
+    canvas.drawPath(
+        dashPath,
+        Paint()
+          ..color = elColor.withOpacity(0.4)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5);
   }
 
   void _drawReturningBalls(Canvas canvas) {
     for (final rb in returningBalls) {
       final col = elementDataMap[rb.el]?.ballColor ?? const Color(0xFFFFFFFF);
       canvas.drawCircle(
-        Offset(rb.x, rb.y), ballRadius,
+        Offset(rb.x, rb.y),
+        ballRadius,
         Paint()..color = col.withOpacity(0.4 + 0.6 * (1 - rb.t)),
       );
     }
@@ -569,19 +648,27 @@ class BallzFlameGame extends FlameGame {
 
   void _drawActiveBalls(Canvas canvas) {
     for (final b in activeBalls) {
-      final col = elementDataMap[b.element]?.ballColor ?? const Color(0xFFFFFFFF);
-      canvas.drawCircle(Offset(b.position.x, b.position.y), ballRadius, Paint()..color = col);
+      final col =
+          elementDataMap[b.element]?.ballColor ?? const Color(0xFFFFFFFF);
+      canvas.drawCircle(
+          Offset(b.position.x, b.position.y), ballRadius, Paint()..color = col);
     }
   }
 
   void _drawOriginBall(Canvas canvas) {
     if (phase != GamePhase.aim) return;
-    final col = elementDataMap[gameState.ballElement]?.ballColor ?? const Color(0xFFFFFFFF);
-    canvas.drawCircle(Offset(originX, floorY), ballRadius, Paint()..color = col);
+    final col = elementDataMap[gameState.ballElement]?.ballColor ??
+        const Color(0xFFFFFFFF);
+    canvas.drawCircle(
+        Offset(originX, floorY), ballRadius, Paint()..color = col);
     final tp = TextPainter(
       text: TextSpan(
         text: 'x${gameState.ballCount}',
-        style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 11, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+        style: const TextStyle(
+            color: Color(0xCCFFFFFF),
+            fontSize: 11,
+            fontFamily: 'monospace',
+            fontWeight: FontWeight.bold),
       ),
       textDirection: TextDirection.ltr,
     )..layout();
@@ -600,9 +687,13 @@ class _ReturningBall {
   final ElementType el;
   double t = 0, x, y;
   _ReturningBall({
-    required this.sx, required this.sy,
-    required this.ex, required this.ey,
-    required this.cpx, required this.cpy,
+    required this.sx,
+    required this.sy,
+    required this.ex,
+    required this.ey,
+    required this.cpx,
+    required this.cpy,
     required this.el,
-  }) : x = sx, y = sy;
+  })  : x = sx,
+        y = sy;
 }

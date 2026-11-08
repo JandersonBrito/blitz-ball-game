@@ -162,6 +162,15 @@ class GameState extends ChangeNotifier {
     return true;
   }
 
+  bool get speedUnlocked => (upgrades['speed'] ?? 0) > 0;
+  bool fastForward = false;
+  bool get fastForwardActive => fastForward && speedUnlocked;
+  void toggleFastForward() {
+    if (!speedUnlocked) return;
+    fastForward = !fastForward;
+    notifyListeners();
+  }
+
   void addGold(int amount) { gold += amount; notifyListeners(); }
   void addScore(int amount) { score += amount; notifyListeners(); }
   void incrementBallCount() { ballCount++; notifyListeners(); }
