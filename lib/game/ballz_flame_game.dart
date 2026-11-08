@@ -10,6 +10,7 @@ import 'package:flutter/material.dart'
         Offset,
         Paint,
         PaintingStyle,
+        SweepGradient,
         TextDirection,
         TextSpan,
         TextStyle,
@@ -18,6 +19,7 @@ import 'components/block_component.dart';
 import 'components/ball_component.dart';
 import 'managers/game_state.dart';
 import 'managers/block_factory.dart';
+import '../models/ball_skin.dart';
 import '../models/element.dart';
 import '../services/ad_service_mobile.dart';
 import '../services/audio_service.dart';
@@ -642,11 +644,7 @@ class BallzFlameGame extends FlameGame {
   void _drawReturningBalls(Canvas canvas) {
     for (final rb in returningBalls) {
       final col = elementDataMap[rb.el]?.ballColor ?? const Color(0xFFFFFFFF);
-      canvas.drawCircle(
-        Offset(rb.x, rb.y),
-        ballRadius,
-        Paint()..color = col.withOpacity(0.4 + 0.6 * (1 - rb.t)),
-      );
+      _drawBall(canvas, Offset(rb.x, rb.y), col, 0.4 + 0.6 * (1 - rb.t));
     }
   }
 
@@ -654,17 +652,39 @@ class BallzFlameGame extends FlameGame {
     for (final b in activeBalls) {
       final col =
           elementDataMap[b.element]?.ballColor ?? const Color(0xFFFFFFFF);
-      canvas.drawCircle(
-          Offset(b.position.x, b.position.y), ballRadius, Paint()..color = col);
+      _drawBall(canvas, Offset(b.position.x, b.position.y), col, 1);
     }
+  }
+
+  // Paints reaproveitados: pode haver dezenas de bolas na tela por frame.
+  static final Paint _prismGlow = Paint()..color = const Color(0x33FFD27A);
+  static final Paint _prismRing = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.6
+    ..shader = const SweepGradient(colors: [
+      Color(0xFFFF5E5E), Color(0xFFFFD25E), Color(0xFF7CFF5E),
+      Color(0xFF5EE1FF), Color(0xFFB45EFF), Color(0xFFFF5E5E),
+    ]).createShader(Rect.fromCircle(center: Offset.zero, radius: ballRadius + 1));
+
+  void _drawBall(Canvas canvas, Offset center, Color core, double opacity) {
+    if (gameState.activeSkin != BallSkin.prism) {
+      canvas.drawCircle(center, ballRadius, Paint()..color = core.withOpacity(opacity));
+      return;
+    }
+    canvas.drawCircle(center, ballRadius * 1.9, _prismGlow);
+    canvas.drawCircle(center, ballRadius, Paint()..color = core.withOpacity(opacity));
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(_pulseTime * 4);
+    canvas.drawCircle(Offset.zero, ballRadius + 1, _prismRing);
+    canvas.restore();
   }
 
   void _drawOriginBall(Canvas canvas) {
     if (phase != GamePhase.aim) return;
     final col = elementDataMap[gameState.ballElement]?.ballColor ??
         const Color(0xFFFFFFFF);
-    canvas.drawCircle(
-        Offset(originX, floorY), ballRadius, Paint()..color = col);
+    _drawBall(canvas, Offset(originX, floorY), col, 1);
     final tp = TextPainter(
       text: TextSpan(
         text: 'x${gameState.ballCount}',

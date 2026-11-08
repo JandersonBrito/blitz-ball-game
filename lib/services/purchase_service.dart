@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Pacote de ouro consumível: pode ser comprado quantas vezes o jogador quiser.
@@ -10,6 +11,12 @@ class GoldPack {
   const GoldPack(this.id, this.gold);
 }
 
+/// Resultado da última tentativa de compra de um produto, mostrado na loja.
+enum PurchaseOutcome { success, pending, canceled, error, notFound }
+
+/// Resultado do botão "Restaurar compras".
+enum RestoreOutcome { restored, nothingFound, failed }
+
 class PurchaseService extends ChangeNotifier {
   PurchaseService._();
   static final PurchaseService instance = PurchaseService._();
@@ -17,10 +24,9 @@ class PurchaseService extends ChangeNotifier {
   // IDs precisam ser idênticos aos cadastrados no Google Play Console.
   static const removeAdsId = 'remove_ads';
   static const goldDoublerId = 'gold_doubler';
-  static const starterPackId = 'starter_pack';
-
-  /// Ouro entregue junto com o pacote inicial, além de remover anúncios.
-  static const starterPackGold = 2500;
+  /// Pacote Iniciante: +3 bolas iniciais em toda fase e a skin Prisma.
+  static const starterPackId = 'starter_pack_3_balls';
+  static const starterBonusBalls = 3;
 
   static const goldPacks = [
     GoldPack('gold_pack_small', 1500),
@@ -35,6 +41,9 @@ class PurchaseService extends ChangeNotifier {
     return null;
   }
 
+  /// Compras permanentes; as demais são consumíveis.
+  static const _nonConsumableIds = {removeAdsId, goldDoublerId, starterPackId};
+
   static final Set<String> _allIds = {
     removeAdsId,
     goldDoublerId,
@@ -44,7 +53,7 @@ class PurchaseService extends ChangeNotifier {
 
   static const _kAdsRemoved = 'purchase_ads_removed';
   static const _kGoldDoubler = 'purchase_gold_doubler';
-  static const _kStarterOwned = 'purchase_starter_owned';
+  static const _kStarterOwned = 'purchase_starter_3_balls';
   static const _kPendingGold = 'purchase_pending_gold';
   static const _kProcessedIds = 'purchase_processed_ids';
 
@@ -57,9 +66,7 @@ class PurchaseService extends ChangeNotifier {
 
   bool _starterOwned = false;
   bool get starterOwned => _starterOwned;
-
-  /// O pacote inicial só faz sentido para quem ainda vê anúncios.
-  bool get starterAvailable => !_starterOwned && !_adsRemoved;
+  bool get starterAvailable => !_starterOwned;
 
   bool _available = false;
   bool get available => _available;
@@ -68,6 +75,9 @@ class PurchaseService extends ChangeNotifier {
   String? _purchasingId;
   String? get purchasingId => _purchasingId;
   bool get purchasing => _purchasingId != null;
+
+  final Map<String, PurchaseOutcome> _outcomes = {};
+  PurchaseOutcome? outcome(String id) => _outcomes[id];
 
   final Map<String, ProductDetails> _products = {};
   ProductDetails? product(String id) => _products[id];
@@ -107,6 +117,37 @@ class PurchaseService extends ChangeNotifier {
     try {
       await InAppPurchase.instance.restorePurchases();
     } catch (_) {}
+    await _revalidate();
+  }
+
+  /// Confere no Google Play quais compras permanentes o usuário possui. Também
+  /// revoga as reembolsadas, que o restorePurchases() simplesmente não devolve.
+  /// Sem resposta confiável da loja (ex.: offline), mantém o que está salvo.
+  /// Retorna quantas compras permanentes foram encontradas, ou null se falhou.
+  Future<int?> _revalidate() async {
+    if (defaultTargetPlatform != TargetPlatform.android) return null;
+    try {
+      final addition = InAppPurchase.instance
+          .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
+      final response = await addition.queryPastPurchases();
+      if (response.error != null) return null;
+      final owned = response.pastPurchases
+          .where((p) => p.status == PurchaseStatus.purchased ||
+              p.status == PurchaseStatus.restored)
+          .map((p) => p.productID)
+          .toSet();
+      final prefs = await SharedPreferences.getInstance();
+      _adsRemoved = owned.contains(removeAdsId);
+      _goldDoubler = owned.contains(goldDoublerId);
+      _starterOwned = owned.contains(starterPackId);
+      await prefs.setBool(_kAdsRemoved, _adsRemoved);
+      await prefs.setBool(_kGoldDoubler, _goldDoubler);
+      await prefs.setBool(_kStarterOwned, _starterOwned);
+      notifyListeners();
+      return owned.intersection(_nonConsumableIds).length;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _loadProducts() async {
@@ -126,11 +167,18 @@ class PurchaseService extends ChangeNotifier {
       final granted = purchase.status == PurchaseStatus.purchased ||
           purchase.status == PurchaseStatus.restored;
       if (granted) await _deliver(purchase);
-      if (purchase.status != PurchaseStatus.pending &&
-          purchase.productID == _purchasingId) {
-        _purchasingId = null;
-        notifyListeners();
-      }
+      // Restaurações silenciosas não devem gerar aviso de "compra concluída".
+      final outcome = switch (purchase.status) {
+        PurchaseStatus.purchased => PurchaseOutcome.success,
+        PurchaseStatus.pending => PurchaseOutcome.pending,
+        PurchaseStatus.canceled => PurchaseOutcome.canceled,
+        PurchaseStatus.error => PurchaseOutcome.error,
+        PurchaseStatus.restored => null,
+      };
+      if (outcome != null) _outcomes[purchase.productID] = outcome;
+      // Pendente (ex.: boleto) libera a tela; o item chega quando for pago.
+      if (purchase.productID == _purchasingId) _purchasingId = null;
+      notifyListeners();
       if (purchase.pendingCompletePurchase) {
         await InAppPurchase.instance.completePurchase(purchase);
       }
@@ -160,16 +208,8 @@ class PurchaseService extends ChangeNotifier {
       _goldDoubler = true;
       await prefs.setBool(_kGoldDoubler, true);
     } else if (id == starterPackId) {
-      // Restaurar numa reinstalação devolve o benefício permanente, mas o ouro
-      // só é entregue na compra original.
-      if (!_starterOwned && purchase.status == PurchaseStatus.purchased) {
-        _pendingGold += starterPackGold;
-        await prefs.setInt(_kPendingGold, _pendingGold);
-      }
       _starterOwned = true;
-      _adsRemoved = true;
       await prefs.setBool(_kStarterOwned, true);
-      await prefs.setBool(_kAdsRemoved, true);
     }
     notifyListeners();
   }
@@ -194,6 +234,7 @@ class PurchaseService extends ChangeNotifier {
   Future<bool> buy(String id) async {
     if (!_available || purchasing || isOwned(id)) return false;
     _purchasingId = id;
+    _outcomes.remove(id);
     notifyListeners();
 
     try {
@@ -201,7 +242,12 @@ class PurchaseService extends ChangeNotifier {
       if (details == null) {
         final response =
             await InAppPurchase.instance.queryProductDetails({id});
-        if (response.productDetails.isEmpty) throw StateError('not found');
+        if (response.productDetails.isEmpty) {
+          _outcomes[id] = PurchaseOutcome.notFound;
+          _purchasingId = null;
+          notifyListeners();
+          return false;
+        }
         details = response.productDetails.first;
         _products[id] = details;
       }
@@ -211,11 +257,13 @@ class PurchaseService extends ChangeNotifier {
           : await InAppPurchase.instance.buyNonConsumable(purchaseParam: param);
       // Se o fluxo abriu, o resultado chega pelo purchaseStream.
       if (!started) {
+        _outcomes[id] = PurchaseOutcome.error;
         _purchasingId = null;
         notifyListeners();
       }
       return started;
     } catch (_) {
+      _outcomes[id] = PurchaseOutcome.error;
       _purchasingId = null;
       notifyListeners();
       return false;
@@ -225,8 +273,32 @@ class PurchaseService extends ChangeNotifier {
   Future<bool> buyRemoveAds() => buy(removeAdsId);
 
   Future<void> restorePurchases() async {
-    if (!_available) return;
-    await InAppPurchase.instance.restorePurchases();
+    await restore();
+  }
+
+  bool _restoring = false;
+  bool get restoring => _restoring;
+
+  Future<RestoreOutcome> restore() async {
+    if (!_available || _restoring) return RestoreOutcome.failed;
+    _restoring = true;
+    notifyListeners();
+    try {
+      await InAppPurchase.instance.restorePurchases();
+      final found = await _revalidate();
+      if (found == null) {
+        // Fora do Android não há como contar; o resultado chega pelo stream.
+        return defaultTargetPlatform == TargetPlatform.android
+            ? RestoreOutcome.failed
+            : RestoreOutcome.restored;
+      }
+      return found > 0 ? RestoreOutcome.restored : RestoreOutcome.nothingFound;
+    } catch (_) {
+      return RestoreOutcome.failed;
+    } finally {
+      _restoring = false;
+      notifyListeners();
+    }
   }
 
   /// Bônus de ouro por real de um pacote em relação ao menor, ex.: 0.6 = +60%.

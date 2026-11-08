@@ -69,16 +69,15 @@ class ShopScreen extends StatelessWidget {
           Expanded(
             child: ListView(
               children: [
-                if (purchase.starterAvailable)
-                  _OfferCard(
-                    id: PurchaseService.starterPackId,
-                    icon: '🎁',
-                    title: l.starterTitle,
-                    desc: l.starterDesc(PurchaseService.starterPackGold),
-                    color: _gold,
-                    tag: l.oneTimeOffer,
-                    highlight: true,
-                  ),
+                _OfferCard(
+                  id: PurchaseService.starterPackId,
+                  icon: '🎁',
+                  title: l.starterTitle,
+                  desc: l.starterDesc,
+                  color: _gold,
+                  tag: l.oneTimeOffer,
+                  highlight: true,
+                ),
                 for (var i = 0; i < PurchaseService.goldPacks.length; i++)
                   _goldPackCard(purchase, l, i),
                 _OfferCard(
@@ -100,10 +99,10 @@ class ShopScreen extends StatelessWidget {
                 const SizedBox(height: 4),
                 Center(
                   child: TextButton(
-                    onPressed: purchase.available
-                        ? () => purchase.restorePurchases()
+                    onPressed: purchase.available && !purchase.restoring
+                        ? () => _restore(context, l)
                         : null,
-                    child: Text(l.restorePurchase,
+                    child: Text(purchase.restoring ? l.waiting : l.restorePurchase,
                         style: const TextStyle(
                             color: Colors.white38,
                             fontSize: 10,
@@ -124,6 +123,18 @@ class ShopScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _restore(BuildContext context, L10n l) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final result = await PurchaseService.instance.restore();
+    messenger.showSnackBar(SnackBar(
+      content: Text(switch (result) {
+        RestoreOutcome.restored => l.restoreDone,
+        RestoreOutcome.nothingFound => l.restoreNothing,
+        RestoreOutcome.failed => l.restoreFailed,
+      }),
+    ));
   }
 
   Widget _goldPackCard(PurchaseService purchase, L10n l, int i) {
@@ -169,6 +180,16 @@ class _OfferCard extends StatelessWidget {
     final busy = purchase.purchasingId == id;
     final price = purchase.product(id)?.price;
     final enabled = !owned && purchase.available && !purchase.purchasing;
+    // "Já comprado" substitui qualquer resultado antigo da tentativa.
+    final outcome = owned ? null : purchase.outcome(id);
+    final (outcomeText, outcomeColor) = switch (outcome) {
+      PurchaseOutcome.success => (l.outcomeSuccess, _green),
+      PurchaseOutcome.pending => (l.outcomePending, _gold),
+      PurchaseOutcome.canceled => (l.outcomeCanceled, Colors.white38),
+      PurchaseOutcome.error => (l.outcomeError, const Color(0xFFE24B4A)),
+      PurchaseOutcome.notFound => (l.outcomeNotFound, const Color(0xFFE24B4A)),
+      null => (null, Colors.transparent),
+    };
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -228,6 +249,15 @@ class _OfferCard extends StatelessWidget {
                         color: owned ? Colors.white38 : color,
                         fontSize: 10,
                         fontFamily: 'monospace')),
+                if (outcomeText != null) ...[
+                  const SizedBox(height: 3),
+                  Text(outcomeText,
+                      style: TextStyle(
+                          color: outcomeColor,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace')),
+                ],
               ],
             ),
           ),
@@ -246,20 +276,38 @@ class _OfferCard extends StatelessWidget {
                 border: Border.all(color: owned ? Colors.white12 : Colors.transparent),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: Text(
-                owned
-                    ? l.ownedTag
-                    : busy
-                        ? '...'
-                        : price ?? '—',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: owned ? Colors.white38 : Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'monospace',
-                ),
-              ),
+              child: busy
+                  ? const Center(
+                      child: SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
+                      ),
+                    )
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Preço sempre vem do Google Play, nunca do código.
+                        Text(
+                          owned ? l.ownedTag : price ?? '—',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: owned ? Colors.white38 : Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                        if (highlight && !owned)
+                          Text(l.buy,
+                              style: const TextStyle(
+                                  color: Color(0xFF0A0A14),
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'monospace')),
+                      ],
+                    ),
             ),
           ),
         ],

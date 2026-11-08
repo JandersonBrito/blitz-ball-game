@@ -1,7 +1,7 @@
 name: ballz_flutter
 description: Brick breaker with elements, upgrades and boss fights.
 publish_to: 'none'
-version: 1.0.6+9
+version: 1.0.7+10
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -14,6 +14,7 @@ dependencies:
   provider: ^6.1.2
   unity_ads_plugin: ^0.6.0
   in_app_purchase: ^3.2.0
+  in_app_purchase_android: ^0.5.5
   games_services: ^4.0.1
   flame_audio: ^2.12.2
   vibration: ^3.2.1

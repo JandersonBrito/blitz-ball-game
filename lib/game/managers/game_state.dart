@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../models/ball_skin.dart';
 import '../../models/element.dart';
 import '../../models/upgrade.dart';
 
@@ -25,6 +26,13 @@ class GameState extends ChangeNotifier {
   int totalRoundsPlayed = 0;
   /// Ouro ganho jogando na fase atual (não inclui compras).
   int stageGoldEarned = 0;
+  /// Partidas encerradas em game over, usado para a oferta do Pacote Iniciante.
+  int gamesPlayed = 0;
+  bool starterOfferSeen = false;
+  /// Espelha o Pacote Iniciante do PurchaseService; não é salvo aqui, porque a
+  /// fonte da verdade é a compra.
+  bool starterBallsActive = false;
+  BallSkin ballSkin = BallSkin.classic;
   ElementType ballElement = ElementType.neutral;
   Map<String, int> upgrades = {for (var u in upgradeDefs) u.id: 0};
 
@@ -41,6 +49,9 @@ class GameState extends ChangeNotifier {
   static const _kBallElement = 'gs_ball_element';
   static const _kTotalRounds = 'gs_total_rounds';
   static const _kFreeContinueUsed = 'gs_free_continue_used';
+  static const _kGamesPlayed = 'gs_games_played';
+  static const _kStarterOfferSeen = 'gs_starter_offer_seen';
+  static const _kBallSkin = 'gs_ball_skin';
 
   static Future<GameState> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -57,6 +68,10 @@ class GameState extends ChangeNotifier {
     gs.stageComplete = prefs.getBool(_kStageComplete) ?? false;
     gs.totalRoundsPlayed = prefs.getInt(_kTotalRounds) ?? 0;
     gs.freeContinueUsed = prefs.getBool(_kFreeContinueUsed) ?? false;
+    gs.gamesPlayed = prefs.getInt(_kGamesPlayed) ?? 0;
+    gs.starterOfferSeen = prefs.getBool(_kStarterOfferSeen) ?? false;
+    final skinIdx = prefs.getInt(_kBallSkin) ?? 0;
+    gs.ballSkin = BallSkin.values[skinIdx.clamp(0, BallSkin.values.length - 1)];
     final elIdx = prefs.getInt(_kBallElement) ?? 0;
     gs.ballElement = ElementType.values[elIdx.clamp(0, ElementType.values.length - 1)];
     for (final u in upgradeDefs) {
@@ -80,6 +95,9 @@ class GameState extends ChangeNotifier {
     await prefs.setInt(_kBallElement, ballElement.index);
     await prefs.setInt(_kTotalRounds, totalRoundsPlayed);
     await prefs.setBool(_kFreeContinueUsed, freeContinueUsed);
+    await prefs.setInt(_kGamesPlayed, gamesPlayed);
+    await prefs.setBool(_kStarterOfferSeen, starterOfferSeen);
+    await prefs.setInt(_kBallSkin, ballSkin.index);
     for (final entry in upgrades.entries) {
       await prefs.setInt('gs_upg_${entry.key}', entry.value);
     }
@@ -127,10 +145,39 @@ class GameState extends ChangeNotifier {
     return upgradeDefs.firstWhere((u) => u.id == 'bounce').levels[lvl - 1].value.toInt();
   }
 
-  int get initialBalls {
+  /// Bolas no início de cada fase/wave: upgrade + bônus do Pacote Iniciante.
+  int get initialBalls => baseInitialBalls + (starterBallsActive ? 3 : 0);
+
+  int get baseInitialBalls {
     final lvl = upgrades['balls'] ?? 0;
     if (lvl == 0) return 1;
     return upgradeDefs.firstWhere((u) => u.id == 'balls').levels[lvl - 1].value.toInt() + 1;
+  }
+
+  /// A Prisma só aparece enquanto o Pacote Iniciante estiver ativo.
+  BallSkin get activeSkin => starterBallsActive ? ballSkin : BallSkin.classic;
+
+  void selectSkin(BallSkin skin) {
+    ballSkin = skin;
+    notifyListeners();
+  }
+
+  /// Chamado quando a compra muda; no menu, já mostra a nova contagem de bolas.
+  void setStarterBalls(bool active, {required bool inMenu}) {
+    if (starterBallsActive == active) return;
+    final wasInitial = ballCount == initialBalls;
+    starterBallsActive = active;
+    if (active && ballSkin == BallSkin.classic) ballSkin = BallSkin.prism;
+    if (inMenu && wasInitial) ballCount = initialBalls;
+    notifyListeners();
+  }
+
+  /// A oferta aparece uma única vez, depois da 3ª partida.
+  bool get shouldOfferStarter => gamesPlayed >= 3 && !starterOfferSeen;
+
+  void markStarterOfferSeen() {
+    starterOfferSeen = true;
+    notifyListeners();
   }
 
   double calcElemMult(ElementType atk, ElementType def) {
@@ -255,6 +302,7 @@ class GameState extends ChangeNotifier {
 
   void setGameOver() {
     gameOver = true;
+    gamesPlayed++;
     assistActive = false;
     stageRoundsPlayed = 0;
     notifyListeners();

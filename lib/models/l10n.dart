@@ -408,13 +408,53 @@ class L10n {
   String get offerBadge => _t(["OFERTA", "OFFER", "OFERTA", "OFFRE"]);
   String get oneTimeOffer => _t(["OFERTA ÚNICA", "ONE-TIME OFFER", "OFERTA ÚNICA", "OFFRE UNIQUE"]);
   String get permanentTag => _t(["PERMANENTE", "PERMANENT", "PERMANENTE", "PERMANENT"]);
-  String get starterTitle => _t(["Pacote Inicial", "Starter Pack", "Paquete inicial", "Pack de départ"]);
-  String starterDesc(int gold) => _t([
-    "Sem anúncios para sempre + ⬤ $gold de ouro",
-    "No ads forever + ⬤ $gold gold",
-    "Sin anuncios para siempre + ⬤ $gold de oro",
-    "Sans annonces pour toujours + ⬤ $gold d'or",
+  String get starterTitle => _t(["Pacote Iniciante", "Starter Pack", "Paquete de inicio", "Pack de démarrage"]);
+  String get starterDesc => _t([
+    "+3 bolas no início de toda fase (4 em vez de 1) + skin Prisma exclusiva",
+    "+3 balls at the start of every stage (4 instead of 1) + exclusive Prism skin",
+    "+3 bolas al inicio de cada etapa (4 en vez de 1) + skin Prisma exclusiva",
+    "+3 balles au début de chaque niveau (4 au lieu de 1) + skin Prisme exclusif",
   ]);
+  String get buy => _t(["Comprar", "Buy", "Comprar", "Acheter"]);
+  String get outcomeSuccess => _t(["✓ Compra concluída!", "✓ Purchase complete!", "✓ ¡Compra completada!", "✓ Achat terminé !"]);
+  String get outcomePending => _t([
+    "Pagamento pendente. Liberado assim que for aprovado.",
+    "Payment pending. Unlocked once it's approved.",
+    "Pago pendiente. Se desbloquea al aprobarse.",
+    "Paiement en attente. Débloqué dès son approbation.",
+  ]);
+  String get outcomeCanceled => _t(["Compra cancelada.", "Purchase canceled.", "Compra cancelada.", "Achat annulé."]);
+  String get outcomeError => _t([
+    "Não foi possível concluir. Verifique a conexão e tente de novo.",
+    "Couldn't complete. Check your connection and try again.",
+    "No se pudo completar. Revisa la conexión e inténtalo de nuevo.",
+    "Impossible de terminer. Vérifiez la connexion et réessayez.",
+  ]);
+  String get outcomeNotFound => _t([
+    "Produto indisponível na loja no momento.",
+    "Product not available in the store right now.",
+    "Producto no disponible en la tienda por ahora.",
+    "Produit indisponible dans la boutique pour le moment.",
+  ]);
+  String get restoreDone => _t(["Compras restauradas!", "Purchases restored!", "¡Compras restauradas!", "Achats restaurés !"]);
+  String get restoreNothing => _t([
+    "Nenhuma compra encontrada nesta conta.",
+    "No purchases found on this account.",
+    "No se encontraron compras en esta cuenta.",
+    "Aucun achat trouvé sur ce compte.",
+  ]);
+  String get restoreFailed => _t([
+    "Não foi possível restaurar. Verifique a conexão.",
+    "Couldn't restore. Check your connection.",
+    "No se pudo restaurar. Revisa la conexión.",
+    "Restauration impossible. Vérifiez la connexion.",
+  ]);
+  String get skinTitle => _t(["SKIN DA BOLA", "BALL SKIN", "SKIN DE LA BOLA", "SKIN DE BALLE"]);
+  String get skinClassic => _t(["Clássica", "Classic", "Clásica", "Classique"]);
+  String get skinPrism => _t(["Prisma", "Prism", "Prisma", "Prisme"]);
+  String get starterOfferTitle => _t(["Comece mais forte!", "Start stronger!", "¡Empieza más fuerte!", "Commencez plus fort !"]);
+  String get seeOffer => _t(["Ver oferta", "See offer", "Ver oferta", "Voir l'offre"]);
+  String get notNow => _t(["Agora não", "Not now", "Ahora no", "Pas maintenant"]);
   String get doublerTitle => _t(["Ouro em Dobro", "Double Gold", "Oro doble", "Or double"]);
   String get doublerDesc => _t([
     "Todo ouro dos blocos vale 2x, para sempre",

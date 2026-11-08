@@ -38,6 +38,7 @@ void main() async {
   unawaited(AudioService.instance.init(settings));
   unawaited(HapticService.instance.init(settings));
   final gameState = await GameState.load();
+  gameState.starterBallsActive = PurchaseService.instance.starterOwned;
 
   runApp(BallzApp(settings: settings, gameState: gameState));
 }

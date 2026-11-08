@@ -74,6 +74,8 @@ class _GameScreenState extends State<GameScreen> {
 
   void _onAdsChange() {
     if (mounted) setState(() {});
+    _gameState.setStarterBalls(PurchaseService.instance.starterOwned,
+        inMenu: _flameGame.phase == GamePhase.menu);
     _claimPurchasedGold();
   }
 

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../game/managers/game_state.dart';
 import '../services/purchase_service.dart';
 import '../services/settings_service.dart';
+import '../models/ball_skin.dart';
 import '../models/element.dart';
 import 'upgrade_screen.dart';
 import 'settings_screen.dart';
@@ -42,6 +43,32 @@ class _MenuOverlayState extends State<MenuOverlay> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<GameState>();
+    final purchase = context.watch<PurchaseService>();
+    final onMainMenu = !_showSettings && !_showUpgrades && !_showTutorial;
+    // Só oferece com o preço já carregado, para nunca mostrar um botão vazio.
+    final offerStarter = onMainMenu &&
+        state.shouldOfferStarter &&
+        purchase.starterAvailable &&
+        purchase.product(PurchaseService.starterPackId) != null;
+    return Stack(
+      children: [
+        Positioned.fill(child: _buildContent(state, context)),
+        if (offerStarter)
+          Positioned.fill(
+            child: _StarterOffer(
+              price: purchase.product(PurchaseService.starterPackId)!.price,
+              onSee: () {
+                state.markStarterOfferSeen();
+                widget.onOpenShop();
+              },
+              onClose: state.markStarterOfferSeen,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildContent(GameState state, BuildContext context) {
     return Container(
       color: const Color(0xEE0A0A14),
       child: Center(
@@ -106,6 +133,10 @@ class _MenuOverlayState extends State<MenuOverlay> {
 
           // Element selector
           _ElementSelector(),
+          if (state.starterBallsActive) ...[
+            const SizedBox(height: 10),
+            _SkinSelector(),
+          ],
 
           const SizedBox(height: 16),
 
@@ -307,7 +338,7 @@ class _ElementSelector extends StatelessWidget {
   }
 }
 
-/// Botão da loja; ganha um selo pulsante enquanto o Pacote Inicial está à venda.
+/// Botão da loja; ganha um selo pulsante enquanto o Pacote Iniciante está à venda.
 class _ShopButton extends StatefulWidget {
   final VoidCallback onTap;
   const _ShopButton({required this.onTap});
@@ -373,6 +404,142 @@ class _ShopButtonState extends State<_ShopButton>
             ),
           ),
       ],
+    );
+  }
+}
+
+class _SkinSelector extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<GameState>();
+    final l = context.watch<SettingsService>().l10n;
+    Widget chip(BallSkin skin, String label, Color color) {
+      final selected = state.ballSkin == skin;
+      return GestureDetector(
+        onTap: () => state.selectSkin(skin),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: selected ? color.withValues(alpha: 0.2) : Colors.transparent,
+            border: Border.all(color: selected ? color : Colors.white24),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(label,
+              style: TextStyle(
+                  color: selected ? color : Colors.white38,
+                  fontSize: 11,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  fontFamily: 'monospace')),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Text(l.skinTitle,
+            style: const TextStyle(
+                color: Colors.white30,
+                fontSize: 10,
+                letterSpacing: 1,
+                fontFamily: 'monospace')),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            chip(BallSkin.classic, '○ ${l.skinClassic}', Colors.white),
+            const SizedBox(width: 6),
+            chip(BallSkin.prism, '✦ ${l.skinPrism}', const Color(0xFFFFD27A)),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Oferta do Pacote Iniciante: aparece uma vez e fecha com um toque fora.
+class _StarterOffer extends StatelessWidget {
+  final String price;
+  final VoidCallback onSee;
+  final VoidCallback onClose;
+  const _StarterOffer(
+      {required this.price, required this.onSee, required this.onClose});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.watch<SettingsService>().l10n;
+    const gold = Color(0xFFEF9F27);
+    return GestureDetector(
+      onTap: onClose,
+      child: Container(
+        color: const Color(0xB30A0A14),
+        alignment: Alignment.center,
+        child: GestureDetector(
+          onTap: () {}, // toque no card não fecha
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF12121E),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: gold, width: 1.5),
+              boxShadow: [
+                BoxShadow(color: gold.withValues(alpha: 0.3), blurRadius: 18)
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Align(
+                  alignment: Alignment.topRight,
+                  child: GestureDetector(
+                    onTap: onClose,
+                    child: const Text('✕',
+                        style: TextStyle(color: Colors.white38, fontSize: 16)),
+                  ),
+                ),
+                const Text('🎁', style: TextStyle(fontSize: 36)),
+                const SizedBox(height: 6),
+                Text(l.starterOfferTitle,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace')),
+                const SizedBox(height: 8),
+                Text(l.starterDesc,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        color: gold, fontSize: 12, fontFamily: 'monospace')),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: onSee,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: gold,
+                      foregroundColor: const Color(0xFF0A0A14),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: Text('${l.seeOffer} · $price',
+                        style: const TextStyle(
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                TextButton(
+                  onPressed: onClose,
+                  child: Text(l.notNow,
+                      style: const TextStyle(
+                          color: Colors.white38, fontFamily: 'monospace')),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
