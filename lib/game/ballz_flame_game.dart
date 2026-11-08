@@ -182,9 +182,11 @@ class BallzFlameGame extends FlameGame {
       if (lastWave) {
         phase = GamePhase.stageComplete;
         gameState.setStageComplete();
+        AudioService.instance.playStageComplete();
         return;
       }
       gameState.advanceWave();
+      AudioService.instance.playWaveClear();
       // Spawn 2 fresh rows for the next wave (field is empty, no overlap check needed)
       final dom = allElements[Random().nextInt(allElements.length)];
       for (int r = 0; r < 2; r++) {
