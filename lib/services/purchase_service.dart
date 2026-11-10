@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Pacote de ouro consumível: pode ser comprado quantas vezes o jogador quiser.
 class GoldPack {
@@ -17,7 +19,15 @@ enum PurchaseOutcome { success, pending, canceled, error, notFound }
 /// Resultado do botão "Restaurar compras".
 enum RestoreOutcome { restored, nothingFound, failed }
 
-class PurchaseService extends ChangeNotifier {
+/// Resultado do resgate de um código promocional do Google Play.
+class RedeemResult {
+  /// IDs dos produtos liberados pelo código (vazio = nada novo encontrado).
+  final List<String> grantedIds;
+  const RedeemResult(this.grantedIds);
+  bool get found => grantedIds.isNotEmpty;
+}
+
+class PurchaseService extends ChangeNotifier with WidgetsBindingObserver {
   PurchaseService._();
   static final PurchaseService instance = PurchaseService._();
 
@@ -91,6 +101,24 @@ class PurchaseService extends ChangeNotifier {
 
   StreamSubscription<List<PurchaseDetails>>? _subscription;
 
+  /// Produtos liberados durante a verificação atual (ver [refreshPurchases]).
+  List<String>? _grantsInRefresh;
+  bool _refreshing = false;
+
+  /// O jogador saiu para resgatar um código e ainda não voltou ao app.
+  bool _redeemPending = false;
+  bool get redeemPending => _redeemPending;
+
+  bool _checkingRedeem = false;
+  bool get checkingRedeem => _checkingRedeem;
+
+  RedeemResult? _redeemResult;
+  RedeemResult? get redeemResult => _redeemResult;
+  void clearRedeemResult() {
+    _redeemResult = null;
+    notifyListeners();
+  }
+
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
     _adsRemoved = prefs.getBool(_kAdsRemoved) ?? false;
@@ -98,6 +126,7 @@ class PurchaseService extends ChangeNotifier {
     _starterOwned = prefs.getBool(_kStarterOwned) ?? false;
     _pendingGold = prefs.getInt(_kPendingGold) ?? 0;
     _processedIds = (prefs.getStringList(_kProcessedIds) ?? []).toSet();
+    WidgetsBinding.instance.addObserver(this);
     // A loja não pode atrasar a abertura do jogo.
     unawaited(_connectStore());
   }
@@ -137,6 +166,9 @@ class PurchaseService extends ChangeNotifier {
           .map((p) => p.productID)
           .toSet();
       final prefs = await SharedPreferences.getInstance();
+      for (final id in _nonConsumableIds) {
+        if (owned.contains(id) && !isOwned(id)) _grantsInRefresh?.add(id);
+      }
       _adsRemoved = owned.contains(removeAdsId);
       _goldDoubler = owned.contains(goldDoublerId);
       _starterOwned = owned.contains(starterPackId);
@@ -163,6 +195,12 @@ class PurchaseService extends ChangeNotifier {
 
   void _handlePurchases(List<PurchaseDetails> purchases) async {
     for (final purchase in purchases) {
+      if (purchase.productID.isEmpty) {
+        // Cancelamento/erro sem compra: o Google Play não informa o produto,
+        // então o resultado vale para a compra em andamento.
+        _resolveOrphan(purchase.status);
+        continue;
+      }
       if (!_allIds.contains(purchase.productID)) continue;
       final granted = purchase.status == PurchaseStatus.purchased ||
           purchase.status == PurchaseStatus.restored;
@@ -177,12 +215,31 @@ class PurchaseService extends ChangeNotifier {
       };
       if (outcome != null) _outcomes[purchase.productID] = outcome;
       // Pendente (ex.: boleto) libera a tela; o item chega quando for pago.
-      if (purchase.productID == _purchasingId) _purchasingId = null;
+      final boughtInApp = purchase.productID == _purchasingId;
+      if (boughtInApp) _purchasingId = null;
       notifyListeners();
-      if (purchase.pendingCompletePurchase) {
+      if (granted && goldPackFor(purchase.productID) != null &&
+          !(boughtInApp && purchase.status == PurchaseStatus.purchased)) {
+        // Ouro que não veio do buyConsumable (código promocional, compra
+        // interrompida) não é consumido pelo plugin; sem consumir, o pacote
+        // fica "possuído" e não pode ser comprado de novo. Consumir já confirma.
+        await _consume(purchase);
+      } else if (purchase.pendingCompletePurchase) {
         await InAppPurchase.instance.completePurchase(purchase);
       }
     }
+  }
+
+  void _resolveOrphan(PurchaseStatus status) {
+    final id = _purchasingId;
+    if (id == null) return;
+    _outcomes[id] = switch (status) {
+      PurchaseStatus.canceled => PurchaseOutcome.canceled,
+      PurchaseStatus.pending => PurchaseOutcome.pending,
+      _ => PurchaseOutcome.error,
+    };
+    _purchasingId = null;
+    notifyListeners();
   }
 
   Future<void> _deliver(PurchaseDetails purchase) async {
@@ -195,13 +252,17 @@ class PurchaseService extends ChangeNotifier {
       // confirmar); o ID da transação impede entregar o ouro em dobro.
       final txId = purchase.purchaseID ?? '';
       if (txId.isNotEmpty && _processedIds.contains(txId)) return;
+      _grantsInRefresh?.add(id);
       _pendingGold += pack.gold;
       await prefs.setInt(_kPendingGold, _pendingGold);
       if (txId.isNotEmpty) {
         _processedIds.add(txId);
         await prefs.setStringList(_kProcessedIds, _processedIds.toList());
       }
-    } else if (id == removeAdsId) {
+    } else if (_nonConsumableIds.contains(id) && !isOwned(id)) {
+      _grantsInRefresh?.add(id);
+    }
+    if (id == removeAdsId) {
       _adsRemoved = true;
       await prefs.setBool(_kAdsRemoved, true);
     } else if (id == goldDoublerId) {
@@ -212,6 +273,86 @@ class PurchaseService extends ChangeNotifier {
       await prefs.setBool(_kStarterOwned, true);
     }
     notifyListeners();
+  }
+
+  Future<void> _consume(PurchaseDetails purchase) async {
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      if (purchase.pendingCompletePurchase) {
+        await InAppPurchase.instance.completePurchase(purchase);
+      }
+      return;
+    }
+    try {
+      await InAppPurchase.instance
+          .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>()
+          .consumePurchase(purchase);
+    } catch (_) {}
+  }
+
+  /// Busca na loja compras feitas fora do app (ex.: código promocional
+  /// resgatado no Play Store) e as entrega. Retorna os produtos liberados.
+  Future<List<String>> refreshPurchases() async {
+    if (!_available || _refreshing) return const [];
+    _refreshing = true;
+    final grants = <String>[];
+    _grantsInRefresh = grants;
+    try {
+      await InAppPurchase.instance.restorePurchases();
+      await _revalidate();
+      // As compras restauradas são entregues de forma assíncrona pelo stream.
+      await Future.delayed(const Duration(milliseconds: 500));
+    } catch (_) {
+    } finally {
+      _grantsInRefresh = null;
+      _refreshing = false;
+    }
+    return grants;
+  }
+
+  /// Abre a tela de resgate do Google Play com o código preenchido. O item é
+  /// detectado quando o jogador volta ao app.
+  Future<bool> redeemCode(String code) async {
+    final clean = code.replaceAll(RegExp(r'\s'), '').toUpperCase();
+    final uri = Uri.https('play.google.com', '/redeem',
+        clean.isEmpty ? null : {'code': clean});
+    _redeemResult = null;
+    try {
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      _redeemPending = ok;
+      notifyListeners();
+      return ok;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || !_available) return;
+    unawaited(_onResumed());
+  }
+
+  Future<void> _onResumed() async {
+    // Rede de segurança: se a tela do Google Play fechou e nenhum resultado
+    // chegou, libera o botão em vez de deixá-lo carregando para sempre.
+    final buying = _purchasingId;
+    if (buying != null) {
+      unawaited(Future.delayed(const Duration(seconds: 3), () {
+        if (_purchasingId == buying) _resolveOrphan(PurchaseStatus.canceled);
+      }));
+    }
+    final fromRedeem = _redeemPending;
+    if (fromRedeem) {
+      _redeemPending = false;
+      _checkingRedeem = true;
+      notifyListeners();
+    }
+    final grants = await refreshPurchases();
+    if (fromRedeem) {
+      _checkingRedeem = false;
+      _redeemResult = RedeemResult(grants.toSet().toList());
+      notifyListeners();
+    }
   }
 
   /// Entrega o ouro comprado e zera o saldo pendente. Retorna quanto foi entregue.
@@ -314,6 +455,7 @@ class PurchaseService extends ChangeNotifier {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _subscription?.cancel();
     super.dispose();
   }

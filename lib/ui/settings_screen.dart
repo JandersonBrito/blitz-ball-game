@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/app_settings.dart';
+import '../models/l10n.dart';
 import '../services/settings_service.dart';
 import '../services/purchase_service.dart';
 import '../services/consent_service.dart';
@@ -24,6 +26,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _restoreError;
   bool _showRestoreField = false;
 
+  final _promoController = TextEditingController();
+  bool _promoOpenFailed = false;
+
   bool _cloudSaving = false;
   bool _cloudRestoring = false;
   String? _cloudFeedback;
@@ -32,6 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _restoreController.dispose();
+    _promoController.dispose();
     super.dispose();
   }
 
@@ -95,6 +101,130 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: Text(context.read<SettingsService>().l10n.codeCopied),
         duration: const Duration(seconds: 3),
       ),
+    );
+  }
+
+  Future<void> _redeemPromo() async {
+    FocusScope.of(context).unfocus();
+    final ok = await PurchaseService.instance.redeemCode(_promoController.text);
+    if (!mounted) return;
+    setState(() => _promoOpenFailed = !ok);
+    if (ok) _promoController.clear();
+  }
+
+  String _productName(L10n l, String id) {
+    final packIndex =
+        PurchaseService.goldPacks.indexWhere((p) => p.id == id);
+    if (packIndex >= 0) {
+      return '${l.goldPackName(packIndex)} '
+          '(+${PurchaseService.goldPacks[packIndex].gold} ⬤)';
+    }
+    return switch (id) {
+      PurchaseService.removeAdsId => l.removeAds,
+      PurchaseService.goldDoublerId => l.doublerTitle,
+      PurchaseService.starterPackId => l.starterTitle,
+      _ => id,
+    };
+  }
+
+  Widget _promoSection(L10n l, PurchaseService purchase) {
+    final result = purchase.redeemResult;
+    String? feedback;
+    var feedbackIsError = false;
+    if (purchase.checkingRedeem) {
+      feedback = l.promoChecking;
+    } else if (_promoOpenFailed) {
+      feedback = l.promoOpenFailed;
+      feedbackIsError = true;
+    } else if (result != null) {
+      feedback = result.found
+          ? l.promoGranted(
+              result.grantedIds.map((id) => _productName(l, id)).join(', '))
+          : l.promoNothing;
+      feedbackIsError = !result.found;
+    } else if (purchase.redeemPending) {
+      feedback = l.promoInfo;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l.promoHeader,
+            style: const TextStyle(
+                color: Colors.white38,
+                fontSize: 10,
+                letterSpacing: 1,
+                fontFamily: 'monospace')),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _promoController,
+          textCapitalization: TextCapitalization.characters,
+          autocorrect: false,
+          enableSuggestions: false,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _redeemPromo(),
+          onChanged: (_) {
+            if (_promoOpenFailed || purchase.redeemResult != null) {
+              setState(() => _promoOpenFailed = false);
+              purchase.clearRedeemResult();
+            }
+          },
+          style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              letterSpacing: 2,
+              fontFamily: 'monospace'),
+          decoration: InputDecoration(
+            hintText: l.promoHint,
+            hintStyle: const TextStyle(
+                color: Colors.white24, fontSize: 11, letterSpacing: 0),
+            isDense: true,
+            filled: true,
+            fillColor: Colors.white10,
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none),
+          ),
+        ),
+        const SizedBox(height: 6),
+        GestureDetector(
+          onTap: purchase.available && !purchase.checkingRedeem
+              ? _redeemPromo
+              : null,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1D9E75).withValues(alpha: 0.15),
+              border: Border.all(color: const Color(0xFF1D9E75)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              purchase.available ? l.promoRedeem : l.storeUnavailable,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  color: Color(0xFF1D9E75),
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+        if (feedback != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            feedback,
+            style: TextStyle(
+                color: feedbackIsError
+                    ? Colors.redAccent
+                    : (result?.found ?? false)
+                        ? const Color(0xFF1D9E75)
+                        : Colors.white54,
+                fontSize: 10,
+                fontFamily: 'monospace'),
+          ),
+        ],
+      ],
     );
   }
 
@@ -416,6 +546,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     decorationColor: Colors.white38),
               ),
             ),
+          ],
+
+          // ── Código promocional (Google Play) ─────────────────────────
+          if (defaultTargetPlatform == TargetPlatform.android) ...[
+            const SizedBox(height: 20),
+            _promoSection(l, purchase),
           ],
 
           const SizedBox(height: 20),

@@ -449,6 +449,34 @@ class L10n {
     "No se pudo restaurar. Revisa la conexión.",
     "Restauration impossible. Vérifiez la connexion.",
   ]);
+  String get promoHeader => _t(["CÓDIGO PROMOCIONAL", "PROMO CODE", "CÓDIGO PROMOCIONAL", "CODE PROMO"]);
+  String get promoHint => _t(["Digite o código", "Enter the code", "Introduce el código", "Saisissez le code"]);
+  String get promoRedeem => _t(["Resgatar no Google Play", "Redeem on Google Play", "Canjear en Google Play", "Utiliser sur Google Play"]);
+  String get promoInfo => _t([
+    "Confirme o resgate no Google Play e volte ao jogo para receber.",
+    "Confirm on Google Play, then come back to the game to receive it.",
+    "Confirma el canje en Google Play y vuelve al juego para recibirlo.",
+    "Confirmez sur Google Play, puis revenez dans le jeu pour le recevoir.",
+  ]);
+  String get promoChecking => _t(["Verificando resgate...", "Checking redemption...", "Verificando canje...", "Vérification..."]);
+  String get promoOpenFailed => _t([
+    "Não foi possível abrir o Google Play.",
+    "Couldn't open Google Play.",
+    "No se pudo abrir Google Play.",
+    "Impossible d'ouvrir Google Play.",
+  ]);
+  String promoGranted(String items) => _t([
+    "✓ Código resgatado: $items",
+    "✓ Code redeemed: $items",
+    "✓ Código canjeado: $items",
+    "✓ Code utilisé : $items",
+  ]);
+  String get promoNothing => _t([
+    "Nenhum item novo encontrado. Se o resgate foi concluído, toque em Restaurar compra anterior em instantes.",
+    "No new items found. If you completed the redemption, tap Restore previous purchase in a moment.",
+    "No se encontraron artículos nuevos. Si completaste el canje, toca Restaurar compra anterior en un momento.",
+    "Aucun nouvel article. Si vous avez terminé, touchez Restaurer un achat précédent dans un instant.",
+  ]);
   String get skinTitle => _t(["SKIN DA BOLA", "BALL SKIN", "SKIN DE LA BOLA", "SKIN DE BALLE"]);
   String get skinClassic => _t(["Clássica", "Classic", "Clásica", "Classique"]);
   String get skinPrism => _t(["Prisma", "Prism", "Prisma", "Prisme"]);
