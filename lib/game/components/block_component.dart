@@ -12,7 +12,7 @@ class BlockComponent extends PositionComponent with CollisionCallbacks {
   int hp;
   int maxHp;
   final ElementType element;
-  final int goldValue;
+  int goldValue;
   final ElementType? elemPowerEl;
   final bool isBoss;
 

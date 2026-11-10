@@ -10,6 +10,10 @@ class BallComponent extends PositionComponent with CollisionCallbacks {
   ElementType element;
   bool active;
 
+  /// Segundos desde o último bloco quebrável atingido; usado para detectar
+  /// bolas presas em loop entre paredes.
+  double idleTime = 0;
+
   BallComponent({
     required Vector2 position,
     required this.velocity,

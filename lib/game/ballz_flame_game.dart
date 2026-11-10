@@ -42,6 +42,16 @@ class BallzFlameGame extends FlameGame {
   static const double baseAimLength = 160.0; // px de mira sem upgrade
   static const double ballRadius = 5.0;
 
+  /// Ângulo mínimo (rad) em relação à horizontal e à vertical. Igual ao limite
+  /// da mira; impede bolas andando retas de parede a parede para sempre.
+  static const double minBallAngle = 0.15;
+  /// Tempo sem acertar um bloco quebrável até a bola ser desviada.
+  static const double stuckTimeout = 4.0;
+  final _rng = Random();
+
+  /// Blocos com mais ouro que isto perdem 1 a cada rodada em que descem.
+  static const int goldDecayFloor = 5;
+
   late double floorY;
   late double originX;
 
@@ -159,6 +169,8 @@ class BallzFlameGame extends FlameGame {
     // descend blocks
     for (final b in blocks) {
       b.position.y += blockSize;
+      // Ouro que desce sem ser coletado vale menos: incentiva quebrar logo.
+      if (!b.isBoss && b.goldValue > goldDecayFloor) b.goldValue--;
     }
 
     // game over check
@@ -291,6 +303,15 @@ class BallzFlameGame extends FlameGame {
       // block collisions — may set _pendingForceReturn if boss dies
       _handleBlockCollisions(ball, newBalls);
 
+      // Anti-loop: nenhum quique deixa a bola quase reta, e uma bola que
+      // passa muito tempo sem acertar nada quebrável é desviada.
+      ball.idleTime += dt;
+      if (ball.idleTime >= stuckTimeout) {
+        ball.idleTime = 0;
+        _nudge(ball.velocity);
+      }
+      _enforceMinAngle(ball.velocity);
+
       // boss died: finish loop before touching activeBalls
       if (_pendingForceReturn) break;
     }
@@ -312,6 +333,32 @@ class BallzFlameGame extends FlameGame {
     if (allDone && activeBalls.isNotEmpty) {
       _startReturnPhase();
     }
+  }
+
+  /// Garante que [v] forme pelo menos [minBallAngle] com os dois eixos,
+  /// mantendo a velocidade e o sentido em cada eixo.
+  void _enforceMinAngle(Vector2 v) {
+    final speed = v.length;
+    if (speed == 0) return;
+    final minComp = sin(minBallAngle) * speed;
+    final maxComp = cos(minBallAngle) * speed;
+    if (v.y.abs() < minComp) {
+      // Sem componente vertical, desce (rumo ao chão) para encerrar a rodada.
+      final sy = v.y < 0 ? -1.0 : 1.0;
+      v.setValues((v.x < 0 ? -1 : 1) * maxComp, sy * minComp);
+    } else if (v.x.abs() < minComp) {
+      final sx = v.x == 0 ? (_rng.nextBool() ? 1.0 : -1.0) : v.x.sign;
+      v.setValues(sx * minComp, (v.y < 0 ? -1 : 1) * maxComp);
+    }
+  }
+
+  /// Gira [v] entre 20° e 40° para um lado aleatório, quebrando o loop.
+  void _nudge(Vector2 v) {
+    final delta = (20 + _rng.nextDouble() * 20) * pi / 180 *
+        (_rng.nextBool() ? 1 : -1);
+    final ang = atan2(v.y, v.x) + delta;
+    final speed = v.length;
+    v.setValues(cos(ang) * speed, sin(ang) * speed);
   }
 
   void _handleBlockCollisions(
@@ -372,10 +419,12 @@ class BallzFlameGame extends FlameGame {
             } else {
               targetAng = baseAng + fallbackAngles[i];
             }
+            final v = Vector2(
+                cos(targetAng) * ballSpeed, sin(targetAng) * ballSpeed);
+            _enforceMinAngle(v);
             newBalls.add(BallComponent(
               position: ball.position.clone(),
-              velocity: Vector2(
-                  cos(targetAng) * ballSpeed, sin(targetAng) * ballSpeed),
+              velocity: v,
               element: ElementType.neutral,
             ));
           }
@@ -407,6 +456,7 @@ class BallzFlameGame extends FlameGame {
             final canDamage = block.element == ElementType.neutral ||
                 getElementMult(ball.element, block.element) > 1.0;
             if (canDamage) {
+              ball.idleTime = 0;
               block.takeDamage(1);
               block.triggerShake();
               if (!block.isAlive) {
@@ -449,6 +499,7 @@ class BallzFlameGame extends FlameGame {
           final elemMult = gameState.calcElemMult(ball.element, block.element);
           final isCrit = Random().nextDouble() < gameState.critChance;
           final dmg = (baseDmg * elemMult * (isCrit ? 2 : 1)).ceil();
+          ball.idleTime = 0;
           block.takeDamage(dmg);
           gameState.addScore(1);
 
