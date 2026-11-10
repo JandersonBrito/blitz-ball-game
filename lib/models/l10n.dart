@@ -189,6 +189,13 @@ class L10n {
   String get settingsSfx      => _t(['Efeitos sonoros', 'Sound effects', 'Efectos de sonido', 'Effets sonores']);
 
   // ── Tutorial ──────────────────────────────────────────────────────────────
+  String get rankingBtn => _t(['🏆 Ranking', '🏆 Leaderboard', '🏆 Clasificación', '🏆 Classement']);
+  String get rankingFailed => _t([
+    'Não foi possível abrir o ranking. Entre no Google Play Games e tente de novo.',
+    "Couldn't open the leaderboard. Sign in to Google Play Games and try again.",
+    'No se pudo abrir la clasificación. Inicia sesión en Google Play Juegos e inténtalo de nuevo.',
+    "Impossible d'ouvrir le classement. Connectez-vous à Google Play Jeux et réessayez.",
+  ]);
   String get tutorialBtn =>   _t(['? Tutorial', '? Tutorial', '? Tutorial', '? Tutoriel']);
   String get tutorialTitle => _t(['TUTORIAL', 'TUTORIAL', 'TUTORIAL', 'TUTORIEL']);
   String get tutorialNext =>  _t(['Próximo →', 'Next →', 'Siguiente →', 'Suivant →']);
@@ -381,14 +388,6 @@ class L10n {
   String get cloudRestored => _t(["Progresso restaurado da nuvem!", "Progress restored from the cloud!", "¡Progreso restaurado de la nube!", "Progression restaurée depuis le cloud !"]);
   String get cloudNoSave => _t(["Nenhum save encontrado na nuvem.", "No cloud save found.", "No se encontró ningún guardado en la nube.", "Aucune sauvegarde trouvée dans le cloud."]);
   String get cloudInvalid => _t(["Dados inválidos no save da nuvem.", "Invalid cloud save data.", "Datos no válidos en el guardado en la nube.", "Données de sauvegarde cloud non valides."]);
-  String get backupHeader => _t(["BACKUP DE PROGRESSO", "PROGRESS BACKUP", "COPIA DE SEGURIDAD", "SAUVEGARDE DE PROGRESSION"]);
-  String get copyCode => _t(["Copiar Código", "Copy Code", "Copiar código", "Copier le code"]);
-  String get restore => _t(["Restaurar", "Restore", "Restaurar", "Restaurer"]);
-  String get pasteCodeHint => _t(["Cole o código aqui", "Paste the code here", "Pega el código aquí", "Collez le code ici"]);
-  String get confirmRestore => _t(["Confirmar Restauração", "Confirm Restore", "Confirmar restauración", "Confirmer la restauration"]);
-  String get codeCopied => _t(["Código copiado! Cole em outro aparelho para restaurar.", "Code copied! Paste it on another device to restore.", "¡Código copiado! Pégalo en otro dispositivo para restaurar.", "Code copié ! Collez-le sur un autre appareil pour restaurer."]);
-  String get invalidCode => _t(["Código inválido. Verifique e tente novamente.", "Invalid code. Check it and try again.", "Código no válido. Compruébalo e inténtalo de nuevo.", "Code non valide. Vérifiez-le et réessayez."]);
-  String get restoreSuccess => _t(["Progresso restaurado com sucesso!", "Progress restored successfully!", "¡Progreso restaurado correctamente!", "Progression restaurée avec succès !"]);
   String get needHelp => _t(["Precisa de ajuda?", "Need help?", "¿Necesitas ayuda?", "Besoin d'aide ?"]);
   String get helpBodyAccept => _t(["Você está nesta fase há um tempo.\nAceite a ajuda e receba:", "You've been on this stage for a while.\nAccept the help and get:", "Llevas un rato en esta etapa.\nAcepta la ayuda y recibe:", "Vous êtes sur ce niveau depuis un moment.\nAcceptez l'aide et recevez :"]);
   String get helpBodyWatch => _t(["Você está nesta fase há um tempo.\nAssista um anúncio e receba:", "You've been on this stage for a while.\nWatch an ad and get:", "Llevas un rato en esta etapa.\nMira un anuncio y recibe:", "Vous êtes sur ce niveau depuis un moment.\nRegardez une annonce et recevez :"]);

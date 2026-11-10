@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/app_settings.dart';
 import '../models/l10n.dart';
@@ -22,10 +21,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final _restoreController = TextEditingController();
-  String? _restoreError;
-  bool _showRestoreField = false;
-
   final _promoController = TextEditingController();
   bool _promoOpenFailed = false;
 
@@ -36,7 +31,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
-    _restoreController.dispose();
     _promoController.dispose();
     super.dispose();
   }
@@ -91,17 +85,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Future.delayed(const Duration(seconds: 4), () {
       if (mounted) setState(() => _cloudFeedback = null);
     });
-  }
-
-  void _copyBackup() {
-    final code = widget.gameState.exportBackupCode();
-    Clipboard.setData(ClipboardData(text: code));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.read<SettingsService>().l10n.codeCopied),
-        duration: const Duration(seconds: 3),
-      ),
-    );
   }
 
   Future<void> _redeemPromo() async {
@@ -228,31 +211,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _applyRestore() {
-    final code = _restoreController.text.trim();
-    final ok = widget.gameState.applyBackupCode(code);
-    final l = context.read<SettingsService>().l10n;
-    setState(() {
-      _restoreError = ok ? null : l.invalidCode;
-      if (ok) {
-        _showRestoreField = false;
-        _restoreController.clear();
-      }
-    });
-    if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.restoreSuccess)),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsService>();
     final purchase = context.watch<PurchaseService>();
     final l = settings.l10n;
 
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -659,99 +624,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             );
           }),
-
-          const SizedBox(height: 20),
-
-          // ── Backup / Restore ──────────────────────────────────────────
-          Text(l.backupHeader,
-              style: const TextStyle(
-                  color: Colors.white38,
-                  fontSize: 10,
-                  letterSpacing: 1,
-                  fontFamily: 'monospace')),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: _copyBackup,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.white24),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      l.copyCode,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 11,
-                          fontFamily: 'monospace'),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _showRestoreField = !_showRestoreField),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.white24),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      l.restore,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 11,
-                          fontFamily: 'monospace'),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (_showRestoreField) ...[
-            const SizedBox(height: 10),
-            TextField(
-              controller: _restoreController,
-              style: const TextStyle(color: Colors.white, fontSize: 11, fontFamily: 'monospace'),
-              decoration: InputDecoration(
-                hintText: l.pasteCodeHint,
-                hintStyle: const TextStyle(color: Colors.white24, fontSize: 11),
-                filled: true,
-                fillColor: Colors.white10,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none),
-                errorText: _restoreError,
-              ),
-            ),
-            const SizedBox(height: 6),
-            GestureDetector(
-              onTap: _applyRestore,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1D9E75).withValues(alpha: 0.15),
-                  border: Border.all(color: const Color(0xFF1D9E75)),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  l.confirmRestore,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: Color(0xFF1D9E75),
-                      fontSize: 11,
-                      fontFamily: 'monospace',
-                      fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ],
 
           const SizedBox(height: 8),
           TextButton(

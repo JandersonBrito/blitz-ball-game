@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../game/managers/game_state.dart';
 import '../services/purchase_service.dart';
 import '../services/settings_service.dart';
+import '../services/games_cloud_service.dart';
 import '../models/ball_skin.dart';
 import '../models/element.dart';
 import 'upgrade_screen.dart';
@@ -33,6 +34,20 @@ class _MenuOverlayState extends State<MenuOverlay> {
         setState(() => _showTutorial = true);
       }
     });
+  }
+
+  bool _openingRanking = false;
+
+  Future<void> _openRanking(GameState state) async {
+    if (_openingRanking) return;
+    _openingRanking = true;
+    final ok = await GamesCloudService.instance.showStageRanking(state.stage);
+    _openingRanking = false;
+    if (ok || !mounted) return;
+    final l = context.read<SettingsService>().l10n;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l.rankingFailed)),
+    );
   }
 
   void _closeTutorial() {
@@ -207,6 +222,23 @@ class _MenuOverlayState extends State<MenuOverlay> {
                 const SizedBox(height: 8),
                 _ShopButton(onTap: () => widget.onOpenShop()),
                 const SizedBox(height: 8),
+                if (GamesCloudService.instance.rankingConfigured) ...[
+                  OutlinedButton(
+                    onPressed: () => _openRanking(state),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFFE8C547)),
+                      foregroundColor: const Color(0xFFE8C547),
+                      minimumSize: const Size(double.infinity, 48),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: Text(l.rankingBtn,
+                        style: const TextStyle(
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 OutlinedButton(
                   onPressed: () => setState(() => _showSettings = true),
                   style: OutlinedButton.styleFrom(

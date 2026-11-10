@@ -7,6 +7,7 @@ import '../services/settings_service.dart';
 import '../services/ad_service.dart';
 import '../services/consent_service.dart';
 import '../services/purchase_service.dart';
+import '../services/games_cloud_service.dart';
 import 'consent_dialog.dart';
 import 'hud_overlay.dart';
 import 'menu_overlay.dart';
@@ -48,6 +49,7 @@ class _GameScreenState extends State<GameScreen> {
     _gameState.addListener(_onGameStateChange);
     AdService.instance.addListener(_onAdsChange);
     PurchaseService.instance.addListener(_onAdsChange);
+    GamesCloudService.instance.submitStage(_gameState.stage);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkConsent();
       _claimPurchasedGold();
@@ -108,6 +110,8 @@ class _GameScreenState extends State<GameScreen> {
   void _closeShop() => setState(() => _showShop = false);
 
   void _onGameStateChange() {
+    // O serviço ignora fases repetidas ou menores que a melhor já enviada.
+    GamesCloudService.instance.submitStage(_gameState.stage);
     if (_gameState.showWaveToast && !_waveToastVisible) {
       setState(() {
         _waveToastVisible = true;

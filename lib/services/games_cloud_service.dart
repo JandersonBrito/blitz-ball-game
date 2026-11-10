@@ -9,6 +9,16 @@ class GamesCloudService extends ChangeNotifier {
 
   static const _saveSlotName = 'ballz_progress_v1';
 
+  /// ID do placar "Fase mais alta" criado no Play Console
+  /// (Play Games Services > Placares). Ex.: 'CgkI...EAIQAQ'.
+  static const stageLeaderboardId = 'CgkIzYbpoPUEEAIQAw';
+  bool get rankingConfigured => stageLeaderboardId.isNotEmpty;
+
+  /// Maior fase já enviada ao placar nesta sessão (evita envios repetidos).
+  int _submittedStage = 0;
+  /// Maior fase alcançada que ainda não foi enviada (ex.: jogador deslogado).
+  int _pendingStage = 0;
+
   bool _signedIn = false;
   bool get signedIn => _signedIn;
 
@@ -34,6 +44,7 @@ class GamesCloudService extends ChangeNotifier {
       _signedIn = false;
     }
     notifyListeners();
+    await _flushStage();
   }
 
   /// Login explícito acionado pelo usuário. Retorna true em caso de sucesso.
@@ -44,11 +55,50 @@ class GamesCloudService extends ChangeNotifier {
       _signedIn = true;
       _lastError = null;
       notifyListeners();
+      await _flushStage();
       return true;
     } catch (e) {
       _signedIn = false;
       _lastError = e.toString();
       notifyListeners();
+      return false;
+    }
+  }
+
+  /// Registra a fase alcançada no placar. O Play Games guarda só o melhor
+  /// valor de cada jogador, então recomeçar o jogo não derruba o ranking.
+  Future<void> submitStage(int stage) async {
+    if (stage <= _submittedStage || stage <= _pendingStage) return;
+    _pendingStage = stage;
+    await _flushStage();
+  }
+
+  Future<void> _flushStage() async {
+    if (kIsWeb || !_signedIn || !rankingConfigured) return;
+    final stage = _pendingStage;
+    if (stage <= _submittedStage) return;
+    try {
+      await GamesServices.submitScore(
+        score: Score(androidLeaderboardID: stageLeaderboardId, value: stage),
+      );
+      if (stage > _submittedStage) _submittedStage = stage;
+    } catch (_) {
+      // Fica pendente; tenta de novo no próximo avanço ou login.
+    }
+  }
+
+  /// Abre o placar do Play Games, fazendo login antes se preciso.
+  /// Retorna false se o login falhar ou o placar não estiver configurado.
+  Future<bool> showStageRanking(int currentStage) async {
+    if (kIsWeb || !rankingConfigured) return false;
+    if (!_signedIn && !await signIn()) return false;
+    await submitStage(currentStage);
+    try {
+      await GamesServices.showLeaderboards(
+          androidLeaderboardID: stageLeaderboardId);
+      return true;
+    } catch (e) {
+      _lastError = e.toString();
       return false;
     }
   }
