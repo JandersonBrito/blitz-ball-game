@@ -53,7 +53,7 @@ class BallzFlameGame extends FlameGame {
   static const int goldDecayFloor = 5;
 
   late double floorY;
-  late double originX;
+  double originX = 0;
 
   GamePhase phase = GamePhase.menu;
   double? aimAngle;
@@ -76,10 +76,34 @@ class BallzFlameGame extends FlameGame {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    floorY = size.y - 50;
-    originX = size.x / 2;
+    _layoutFloor(size);
     _loadBlocks();
   }
+
+  /// A área do jogo muda de tamanho quando o banner aparece ou some; o chão
+  /// precisa acompanhar para não ficar escondido atrás do anúncio.
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    _layoutFloor(size);
+  }
+
+  void _layoutFloor(Vector2 size) {
+    if (size.x <= 0 || size.y <= 0) return;
+    final oldFloor = _floorReady ? floorY : null;
+    floorY = size.y - 50;
+    _floorReady = true;
+    originX = originX == 0
+        ? size.x / 2
+        : originX.clamp(ballRadius + 1, size.x - ballRadius - 1);
+    if (oldFloor == null || oldFloor == floorY) return;
+    // Bolas já paradas no chão acompanham o novo chão.
+    for (final b in activeBalls) {
+      if (!b.active) b.position.y = floorY;
+    }
+  }
+
+  bool _floorReady = false;
 
   void _loadBlocks() {
     blocks.clear();

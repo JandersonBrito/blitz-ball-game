@@ -141,7 +141,11 @@ class AdService extends ChangeNotifier {
       placementId: _bannerPlacement,
       size: BannerSize.standard,
       onLoad: (_) => onLoaded(),
-      onFailed: (_, __, ___) => _bannerWidget = null,
+      // Sem anúncio, libera o espaço reservado em vez de deixar uma faixa vazia.
+      onFailed: (_, __, ___) {
+        _bannerWidget = null;
+        notifyListeners();
+      },
     );
     // Widget precisa estar na árvore para carregar; notifica para montar o widget
     onLoaded();
