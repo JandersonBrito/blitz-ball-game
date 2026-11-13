@@ -25,6 +25,8 @@ import '../services/ad_service_mobile.dart';
 import '../services/audio_service.dart';
 import '../services/haptic_service.dart';
 import '../services/purchase_service.dart';
+import '../services/daily_mission_service.dart';
+import '../models/daily_mission.dart';
 
 enum GamePhase { menu, aim, shooting, returning, gameOver, stageComplete }
 
@@ -185,6 +187,8 @@ class BallzFlameGame extends FlameGame {
     firstLandX = null;
     returnTargetX = null;
 
+    DailyMissionService.instance.track(MissionType.playRounds);
+
     // interstitial ad every 10 rounds, if AdService's time limits allow it
     if (gameState.incrementTotalRounds()) {
       AdService.instance.showInterstitial();
@@ -220,6 +224,7 @@ class BallzFlameGame extends FlameGame {
       final lastWave = gameState.waveInStage >= gameState.wavesInStage;
       if (lastWave) {
         phase = GamePhase.stageComplete;
+        DailyMissionService.instance.track(MissionType.clearStages);
         gameState.setStageComplete();
         AudioService.instance.playStageComplete();
         return;
@@ -408,6 +413,7 @@ class BallzFlameGame extends FlameGame {
           AudioService.instance.playBreak();
           HapticService.instance.blockBreak();
           gameState.incrementBallCount();
+          DailyMissionService.instance.track(MissionType.collectBalls);
           shotQueue.insert(
               0,
               _ShotEntry(
@@ -526,14 +532,21 @@ class BallzFlameGame extends FlameGame {
           ball.idleTime = 0;
           block.takeDamage(dmg);
           gameState.addScore(1);
+          final missions = DailyMissionService.instance;
+          if (elemMult > 1) missions.track(MissionType.advantageHits);
+          if (isCrit) missions.track(MissionType.critHits);
 
           if (!block.isAlive) {
             AudioService.instance.playBreak();
             HapticService.instance.blockBreak();
-            if (block.goldValue > 0)
+            missions.track(MissionType.breakBlocks);
+            if (block.goldValue > 0) {
+              final goldBefore = gameState.gold;
               gameState.earnGold(
                   block.isBoss ? block.goldValue * 2 : block.goldValue,
                   multiplier: PurchaseService.instance.goldMultiplier);
+              missions.track(MissionType.earnGold, gameState.gold - goldBefore);
+            }
             gameState.addScore(block.isBoss ? 20 : 3);
             final wasBoss = block.isBoss;
             blocks.removeAt(bi);

@@ -9,6 +9,7 @@ import 'services/ad_service.dart';
 import 'services/purchase_service.dart';
 import 'services/consent_service.dart';
 import 'services/games_cloud_service.dart';
+import 'services/daily_mission_service.dart';
 import 'game/managers/game_state.dart';
 import 'ui/game_screen.dart';
 import 'ui/consent_dialog.dart';
@@ -39,6 +40,7 @@ void main() async {
   unawaited(HapticService.instance.init(settings));
   final gameState = await GameState.load();
   gameState.starterBallsActive = PurchaseService.instance.starterOwned;
+  await DailyMissionService.instance.load(gameState);
 
   runApp(BallzApp(settings: settings, gameState: gameState));
 }
@@ -55,6 +57,7 @@ class BallzApp extends StatelessWidget {
         ChangeNotifierProvider.value(value: settings),
         ChangeNotifierProvider.value(value: PurchaseService.instance),
         ChangeNotifierProvider.value(value: GamesCloudService.instance),
+        ChangeNotifierProvider.value(value: DailyMissionService.instance),
       ],
       child: MaterialApp(
         title: 'Elemental Breaker: Balls',

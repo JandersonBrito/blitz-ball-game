@@ -16,6 +16,8 @@ import 'stage_complete_overlay.dart';
 import 'settings_screen.dart';
 import 'help_offer_overlay.dart';
 import 'shop_screen.dart';
+import '../services/daily_mission_service.dart';
+import '../models/daily_mission.dart';
 
 class GameScreen extends StatefulWidget {
   final GameState gameState;
@@ -25,7 +27,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   late BallzFlameGame _flameGame;
   late GameState _gameState;
   bool _isPaused = false;
@@ -40,6 +42,10 @@ class _GameScreenState extends State<GameScreen> {
   int _toastWave = 1;
   int _toastTotal = 1;
 
+  // Aviso de missão concluída
+  DailyMission? _missionToast;
+  int _missionToastSeq = 0;
+
   @override
   void initState() {
     super.initState();
@@ -49,6 +55,8 @@ class _GameScreenState extends State<GameScreen> {
     _gameState.addListener(_onGameStateChange);
     AdService.instance.addListener(_onAdsChange);
     PurchaseService.instance.addListener(_onAdsChange);
+    DailyMissionService.instance.addListener(_onMissionsChange);
+    WidgetsBinding.instance.addObserver(this);
     GamesCloudService.instance.submitStage(_gameState.stage);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkConsent();
@@ -70,8 +78,31 @@ class _GameScreenState extends State<GameScreen> {
     _gameState.removeListener(_onGameStateChange);
     AdService.instance.removeListener(_onAdsChange);
     PurchaseService.instance.removeListener(_onAdsChange);
+    DailyMissionService.instance.removeListener(_onMissionsChange);
+    WidgetsBinding.instance.removeObserver(this);
     AdService.instance.disposeBanner();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      DailyMissionService.instance.flush();
+    }
+  }
+
+  void _onMissionsChange() {
+    final done = DailyMissionService.instance.justCompleted;
+    if (done == null || !mounted) return;
+    DailyMissionService.instance.clearJustCompleted();
+    final seq = ++_missionToastSeq;
+    setState(() => _missionToast = done);
+    Future.delayed(const Duration(milliseconds: 3200), () {
+      if (mounted && seq == _missionToastSeq) {
+        setState(() => _missionToast = null);
+      }
+    });
   }
 
   void _onAdsChange() {
@@ -427,6 +458,22 @@ class _GameScreenState extends State<GameScreen> {
                       },
                     ),
 
+                    // Aviso de missão concluída: acima dos overlays de fim de fase/game over
+                    Positioned(
+                      top: 56, left: 0, right: 0,
+                      child: IgnorePointer(
+                        child: AnimatedOpacity(
+                          opacity: _missionToast != null ? 1.0 : 0.0,
+                          duration: const Duration(milliseconds: 300),
+                          child: _missionToast == null
+                              ? const SizedBox.shrink()
+                              : _MissionToast(
+                                  key: ValueKey(_missionToastSeq),
+                                  mission: _missionToast!),
+                        ),
+                      ),
+                    ),
+
                     // Loja: fica acima de tudo para abrir de qualquer tela
                     if (_showShop)
                       Positioned.fill(
@@ -519,6 +566,64 @@ class _WaveToast extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MissionToast extends StatelessWidget {
+  final DailyMission mission;
+  const _MissionToast({super.key, required this.mission});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.watch<SettingsService>().l10n;
+    const green = Color(0xFF97C459);
+    return Center(
+      child: TweenAnimationBuilder<double>(
+        // Entra com um "pulo" para chamar atenção.
+        tween: Tween(begin: 0.7, end: 1.0),
+        duration: const Duration(milliseconds: 380),
+        curve: Curves.elasticOut,
+        builder: (_, scale, child) => Transform.scale(scale: scale, child: child),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF16261A),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: green, width: 2),
+            boxShadow: [
+              BoxShadow(color: green.withValues(alpha: 0.45), blurRadius: 20, spreadRadius: 2),
+              const BoxShadow(color: Color(0xAA000000), blurRadius: 12),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('📋 ${l.missionCompleted}',
+                  style: const TextStyle(
+                      color: green,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace')),
+              const SizedBox(height: 4),
+              Text(l.missionDesc(mission.type, mission.target),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontFamily: 'monospace')),
+              const SizedBox(height: 2),
+              Text('⬤ ${mission.reward}',
+                  style: const TextStyle(
+                      color: Color(0xFFEF9F27),
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace')),
+            ],
+          ),
         ),
       ),
     );

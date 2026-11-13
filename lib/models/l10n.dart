@@ -1,5 +1,6 @@
 import 'app_settings.dart';
 import 'element.dart';
+import 'daily_mission.dart';
 
 class L10n {
   final AppLanguage lang;
@@ -530,4 +531,41 @@ class L10n {
     "🛒 Hazte más fuerte en la tienda",
     "🛒 Devenez plus fort à la boutique",
   ]);
+
+  // ── Missões diárias ───────────────────────────────────────────────────────
+  String get missionsBtn => '📋 ${_t(["Missões diárias", "Daily missions", "Misiones diarias", "Missions du jour"])}';
+  String get missionsTitle => _t(["Missões diárias", "Daily missions", "Misiones diarias", "Missions du jour"]);
+  String missionsReset(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes % 60;
+    final time = h > 0 ? '${h}h ${m}m' : '${m}m';
+    return _t(["Novas missões em $time", "New missions in $time", "Nuevas misiones en $time", "Nouvelles missions dans $time"]);
+  }
+  String missionDesc(MissionType t, int n) => switch (t) {
+    MissionType.breakBlocks => _t(["Destrua $n blocos", "Break $n blocks", "Destruye $n bloques", "Détruisez $n blocs"]),
+    MissionType.earnGold => _t(["Ganhe ⬤ $n quebrando blocos", "Earn ⬤ $n breaking blocks", "Gana ⬤ $n rompiendo bloques", "Gagnez ⬤ $n en cassant des blocs"]),
+    MissionType.clearStages => n == 1
+        ? _t(["Conclua 1 fase", "Clear 1 stage", "Completa 1 etapa", "Terminez 1 niveau"])
+        : _t(["Conclua $n fases", "Clear $n stages", "Completa $n etapas", "Terminez $n niveaux"]),
+    MissionType.collectBalls => _t(["Colete $n bolas extras", "Collect $n extra balls", "Recoge $n bolas extra", "Ramassez $n balles bonus"]),
+    MissionType.advantageHits => _t(["Acerte $n vezes com vantagem elemental", "Land $n hits with elemental advantage", "Acierta $n golpes con ventaja elemental", "Réussissez $n coups avec avantage élémentaire"]),
+    MissionType.critHits => _t(["Acerte $n golpes críticos", "Land $n critical hits", "Acierta $n golpes críticos", "Réussissez $n coups critiques"]),
+    MissionType.playRounds => _t(["Jogue $n rodadas", "Play $n rounds", "Juega $n rondas", "Jouez $n manches"]),
+  };
+  String missionDifficulty(MissionDifficulty d) => switch (d) {
+    MissionDifficulty.easy => _t(["FÁCIL", "EASY", "FÁCIL", "FACILE"]),
+    MissionDifficulty.medium => _t(["MÉDIA", "MEDIUM", "MEDIA", "MOYENNE"]),
+    MissionDifficulty.hard => _t(["DIFÍCIL", "HARD", "DIFÍCIL", "DIFFICILE"]),
+  };
+  String get missionClaim => _t(["Resgatar", "Claim", "Reclamar", "Récupérer"]);
+  String get missionClaimed => _t(["✓ Resgatado", "✓ Claimed", "✓ Reclamado", "✓ Récupéré"]);
+  String get missionBonusTitle => _t(["Baú diário", "Daily chest", "Cofre diario", "Coffre du jour"]);
+  String get missionBonusDesc => _t([
+    "Resgate as 3 missões para abrir",
+    "Claim all 3 missions to open",
+    "Reclama las 3 misiones para abrir",
+    "Récupérez les 3 missions pour ouvrir",
+  ]);
+  String get missionBonusOpen => _t(["Abrir", "Open", "Abrir", "Ouvrir"]);
+  String get missionCompleted => _t(["✓ Missão concluída!", "✓ Mission complete!", "✓ ¡Misión completada!", "✓ Mission accomplie !"]);
 }

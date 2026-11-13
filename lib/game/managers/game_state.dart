@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/ball_skin.dart';
 import '../../models/element.dart';
 import '../../models/upgrade.dart';
+import '../../services/daily_mission_service.dart';
 
 class GameState extends ChangeNotifier {
   int score = 0;
@@ -349,6 +350,8 @@ class GameState extends ChangeNotifier {
       'ballElement': ballElement.index,
       'totalRoundsPlayed': totalRoundsPlayed,
       'upgrades': {for (final e in upgrades.entries) e.key: e.value},
+      // Missões com o dia: restaurar no mesmo dia não libera resgatar de novo.
+      'missions': DailyMissionService.instance.exportState(),
     };
     return base64Encode(utf8.encode(jsonEncode(data)));
   }
@@ -374,6 +377,8 @@ class GameState extends ChangeNotifier {
           if (upgrades.containsKey(e.key)) upgrades[e.key] = e.value as int;
         }
       }
+      DailyMissionService.instance
+          .applyBackup(json['missions'] as Map<String, dynamic>?);
       notifyListeners();
       return true;
     } catch (_) {

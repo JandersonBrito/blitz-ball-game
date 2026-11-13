@@ -9,6 +9,8 @@ import '../models/element.dart';
 import 'upgrade_screen.dart';
 import 'settings_screen.dart';
 import 'tutorial_screen.dart';
+import 'daily_missions_screen.dart';
+import '../services/daily_mission_service.dart';
 
 class MenuOverlay extends StatefulWidget {
   final VoidCallback onStartWave;
@@ -24,6 +26,7 @@ class _MenuOverlayState extends State<MenuOverlay> {
   bool _showUpgrades = false;
   bool _showSettings = false;
   bool _showTutorial = false;
+  bool _showMissions = false;
 
   @override
   void initState() {
@@ -59,7 +62,8 @@ class _MenuOverlayState extends State<MenuOverlay> {
   Widget build(BuildContext context) {
     final state = context.watch<GameState>();
     final purchase = context.watch<PurchaseService>();
-    final onMainMenu = !_showSettings && !_showUpgrades && !_showTutorial;
+    final onMainMenu =
+        !_showSettings && !_showUpgrades && !_showTutorial && !_showMissions;
     // Só oferece com o preço já carregado, para nunca mostrar um botão vazio.
     final offerStarter = onMainMenu &&
         state.shouldOfferStarter &&
@@ -95,14 +99,18 @@ class _MenuOverlayState extends State<MenuOverlay> {
                     onOpenShop: widget.onOpenShop)
                 : _showTutorial
                     ? TutorialScreen(onBack: _closeTutorial)
-                    : _buildMainMenu(state, context),
+                    : _showMissions
+                        ? DailyMissionsScreen(
+                            onBack: () => setState(() => _showMissions = false))
+                        : _buildMainMenu(state, context),
       ),
     );
   }
 
   Widget _buildMainMenu(GameState state, BuildContext context) {
     final l = context.watch<SettingsService>().l10n;
-    return Padding(
+    // Rolável para caber em telas baixas com todos os botões.
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -221,6 +229,9 @@ class _MenuOverlayState extends State<MenuOverlay> {
                 ),
                 const SizedBox(height: 8),
                 _ShopButton(onTap: () => widget.onOpenShop()),
+                const SizedBox(height: 8),
+                _MissionsButton(
+                    onTap: () => setState(() => _showMissions = true)),
                 const SizedBox(height: 8),
                 if (GamesCloudService.instance.rankingConfigured) ...[
                   OutlinedButton(
@@ -572,6 +583,57 @@ class _StarterOffer extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Botão das missões; mostra quantas recompensas estão esperando resgate.
+class _MissionsButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _MissionsButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.watch<SettingsService>().l10n;
+    final pending = context.watch<DailyMissionService>().claimableCount;
+    const color = Color(0xFF97C459);
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        OutlinedButton(
+          onPressed: onTap,
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(color: color),
+            foregroundColor: color,
+            minimumSize: const Size(double.infinity, 48),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          child: Text(l.missionsBtn,
+              style: const TextStyle(
+                  fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+        ),
+        if (pending > 0)
+          Positioned(
+            top: -7,
+            right: -6,
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE24B4A),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text('$pending',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace')),
+            ),
+          ),
+      ],
     );
   }
 }
