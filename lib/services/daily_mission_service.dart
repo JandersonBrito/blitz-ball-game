@@ -182,13 +182,23 @@ class DailyMissionService extends ChangeNotifier {
     }
   }
 
+  // Virada do dia checada no máximo uma vez por segundo: track() é chamado da
+  // física e DateTime.now() aloca.
+  final Stopwatch _rollClock = Stopwatch()..start();
+  int _lastRollCheckMs = -1000000;
+
   /// Soma progresso nas missões do tipo. Chamado do loop do jogo, então só
   /// avisa a UI quando uma missão é concluída e grava com atraso.
   void track(MissionType type, [int amount = 1]) {
     if (amount <= 0) return;
-    _rollIfNeeded();
+    final ms = _rollClock.elapsedMilliseconds;
+    if (ms - _lastRollCheckMs >= 1000) {
+      _lastRollCheckMs = ms;
+      _rollIfNeeded();
+    }
     var changed = false;
-    for (final m in _missions) {
+    for (var i = 0; i < _missions.length; i++) {
+      final m = _missions[i];
       if (m.type != type || m.completed) continue;
       m.progress = min(m.target, m.progress + amount);
       changed = true;

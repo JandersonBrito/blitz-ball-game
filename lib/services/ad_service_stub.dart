@@ -15,6 +15,8 @@ class AdService extends ChangeNotifier {
 
   void showInterstitial() {}
 
+  void setGameplayActive(bool active) {}
+
   void showRewarded(void Function() onRewarded) {}
 
   Future<void> loadBanner(VoidCallback onLoaded) async {}

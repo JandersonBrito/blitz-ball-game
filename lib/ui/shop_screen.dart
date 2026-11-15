@@ -201,10 +201,17 @@ class _OfferCard extends StatelessWidget {
           width: highlight ? 1.5 : 1,
         ),
         borderRadius: BorderRadius.circular(10),
-        boxShadow: highlight
-            ? [BoxShadow(color: color.withValues(alpha: 0.25), blurRadius: 14)]
-            : null,
       ),
+      // Halo nítido por fora (sem blur); não pinta o fundo translúcido.
+      foregroundDecoration: highlight
+          ? BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                  color: color.withValues(alpha: 0.25),
+                  width: 3,
+                  strokeAlign: BorderSide.strokeAlignOutside),
+            )
+          : null,
       child: Row(
         children: [
           SizedBox(

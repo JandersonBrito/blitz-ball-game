@@ -213,10 +213,17 @@ class _BonusCard extends StatelessWidget {
         border: Border.all(
             color: claimed ? Colors.white12 : _gold.withValues(alpha: 0.6)),
         borderRadius: BorderRadius.circular(8),
-        boxShadow: claimable
-            ? [BoxShadow(color: _gold.withValues(alpha: 0.3), blurRadius: 12)]
-            : null,
       ),
+      // Halo nítido por fora (sem blur); não pinta o fundo translúcido.
+      foregroundDecoration: claimable
+          ? BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                  color: _gold.withValues(alpha: 0.3),
+                  width: 3,
+                  strokeAlign: BorderSide.strokeAlignOutside),
+            )
+          : null,
       child: Row(
         children: [
           Text(claimed ? '📭' : '🎁', style: const TextStyle(fontSize: 22)),

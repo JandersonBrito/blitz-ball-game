@@ -51,7 +51,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     super.initState();
     _gameState = widget.gameState;
     if (_gameState.gameOver) _gameState.reset();
-    _flameGame = BallzFlameGame(gameState: _gameState);
+    _flameGame = _newGame();
     _gameState.addListener(_onGameStateChange);
     AdService.instance.addListener(_onAdsChange);
     PurchaseService.instance.addListener(_onAdsChange);
@@ -63,6 +63,9 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       _claimPurchasedGold();
     });
   }
+
+  BallzFlameGame _newGame() => BallzFlameGame(
+      gameState: _gameState, settings: context.read<SettingsService>());
 
   Future<void> _checkConsent() async {
     if (!ConsentService.instance.hasBeenAsked) {
@@ -89,6 +92,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
       DailyMissionService.instance.flush();
+      _gameState.flush();
     }
   }
 
@@ -173,7 +177,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   void _handleRestart() {
     AdService.instance.showInterstitial();
     _gameState.reset();
-    _flameGame = BallzFlameGame(gameState: _gameState);
+    _flameGame = _newGame();
     setState(() {});
   }
 
@@ -212,7 +216,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     _gameState.clearStageComplete();
     _flameGame.resumeGame();
     _gameState.reset();
-    _flameGame = BallzFlameGame(gameState: _gameState);
+    _flameGame = _newGame();
     setState(() {
       _isPaused = false;
     });
@@ -237,7 +241,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   void _handleQuit() {
     _flameGame.resumeGame();
     _gameState.reset();
-    _flameGame = BallzFlameGame(gameState: _gameState);
+    _flameGame = _newGame();
     setState(() {
       _isPaused = false;
       _showPauseSettings = false;
@@ -276,26 +280,32 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                       ),
                     ),
 
-                    // HUD
+                    // HUD: camada própria; muda até 10x/s durante a jogada.
                     Positioned(
                       top: 0, left: 0, right: 0,
-                      child: Consumer<GameState>(
-                        builder: (ctx, state, _) => HudOverlay(
-                          onPause: _handlePause,
+                      child: RepaintBoundary(
+                        child: Consumer<GameState>(
+                          builder: (ctx, state, _) => HudOverlay(
+                            onPause: _handlePause,
+                          ),
                         ),
                       ),
                     ),
 
-                    // Wave toast
+                    // Wave toast: o fade anima o alfa das cores, sem Opacity
+                    // (que abriria um saveLayer por cima do jogo).
                     IgnorePointer(
-                      child: AnimatedOpacity(
-                        opacity: _waveToastVisible ? 1.0 : 0.0,
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween(end: _waveToastVisible ? 1.0 : 0.0),
                         duration: const Duration(milliseconds: 350),
-                        child: _WaveToast(
-                          stage: _toastStage,
-                          wave: _toastWave,
-                          total: _toastTotal,
-                        ),
+                        builder: (_, opacity, __) => opacity == 0
+                            ? const SizedBox.shrink()
+                            : _WaveToast(
+                                opacity: opacity,
+                                stage: _toastStage,
+                                wave: _toastWave,
+                                total: _toastTotal,
+                              ),
                       ),
                     ),
 
@@ -462,15 +472,11 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                     Positioned(
                       top: 56, left: 0, right: 0,
                       child: IgnorePointer(
-                        child: AnimatedOpacity(
-                          opacity: _missionToast != null ? 1.0 : 0.0,
-                          duration: const Duration(milliseconds: 300),
-                          child: _missionToast == null
-                              ? const SizedBox.shrink()
-                              : _MissionToast(
-                                  key: ValueKey(_missionToastSeq),
-                                  mission: _missionToast!),
-                        ),
+                        child: _missionToast == null
+                            ? const SizedBox.shrink()
+                            : _MissionToast(
+                                key: ValueKey(_missionToastSeq),
+                                mission: _missionToast!),
                       ),
                     ),
 
@@ -503,12 +509,17 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   }
 }
 
+/// Multiplica o alfa de [c] por [opacity]: fade sem saveLayer.
+Color _faded(Color c, double opacity) => c.withValues(alpha: c.a * opacity);
+
 class _WaveToast extends StatelessWidget {
+  final double opacity;
   final int stage;
   final int wave;
   final int total;
 
   const _WaveToast({
+    required this.opacity,
     required this.stage,
     required this.wave,
     required this.total,
@@ -517,19 +528,19 @@ class _WaveToast extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = context.watch<SettingsService>().l10n;
+    final o = opacity;
+    const green = Color(0xFF1D9E75);
     return Center(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
         decoration: BoxDecoration(
-          color: const Color(0xF0121220),
+          color: _faded(const Color(0xF0121220), o),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF1D9E75), width: 1.5),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x661D9E75),
-              blurRadius: 18,
-              spreadRadius: 2,
-            ),
+          border: Border.all(color: _faded(green, o), width: 1.5),
+          // Halo nítido em vez de sombra com blur.
+          boxShadow: [
+            BoxShadow(color: _faded(const Color(0x661D9E75), o), spreadRadius: 2),
+            BoxShadow(color: _faded(const Color(0x261D9E75), o), spreadRadius: 6),
           ],
         ),
         child: Column(
@@ -537,8 +548,8 @@ class _WaveToast extends StatelessWidget {
           children: [
             Text(
               '${l.hudStage} $stage',
-              style: const TextStyle(
-                color: Colors.white38,
+              style: TextStyle(
+                color: _faded(Colors.white38, o),
                 fontSize: 11,
                 letterSpacing: 3,
                 fontFamily: 'monospace',
@@ -547,8 +558,8 @@ class _WaveToast extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               l.nextWave,
-              style: const TextStyle(
-                color: Color(0xFF1D9E75),
+              style: TextStyle(
+                color: _faded(green, o),
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1,
@@ -558,8 +569,8 @@ class _WaveToast extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               l.waveOf(wave, total),
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: _faded(Colors.white, o),
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 fontFamily: 'monospace',
@@ -580,51 +591,60 @@ class _MissionToast extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = context.watch<SettingsService>().l10n;
     const green = Color(0xFF97C459);
+    // Entra com um "pulo" para chamar atenção; o fade é no alfa das cores.
     return Center(
       child: TweenAnimationBuilder<double>(
-        // Entra com um "pulo" para chamar atenção.
-        tween: Tween(begin: 0.7, end: 1.0),
+        tween: Tween(begin: 0, end: 1),
         duration: const Duration(milliseconds: 380),
-        curve: Curves.elasticOut,
-        builder: (_, scale, child) => Transform.scale(scale: scale, child: child),
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF16261A),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: green, width: 2),
-            boxShadow: [
-              BoxShadow(color: green.withValues(alpha: 0.45), blurRadius: 20, spreadRadius: 2),
-              const BoxShadow(color: Color(0xAA000000), blurRadius: 12),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('📋 ${l.missionCompleted}',
-                  style: const TextStyle(
-                      color: green,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'monospace')),
-              const SizedBox(height: 4),
-              Text(l.missionDesc(mission.type, mission.target),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontFamily: 'monospace')),
-              const SizedBox(height: 2),
-              Text('⬤ ${mission.reward}',
-                  style: const TextStyle(
-                      color: Color(0xFFEF9F27),
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'monospace')),
-            ],
-          ),
-        ),
+        builder: (_, t, __) {
+          final o = (t * 380 / 300).clamp(0.0, 1.0);
+          return Transform.scale(
+            scale: 0.7 + 0.3 * Curves.elasticOut.transform(t),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: _faded(const Color(0xFF16261A), o),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _faded(green, o), width: 2),
+                // Halo nítido em vez de sombra com blur.
+                boxShadow: [
+                  BoxShadow(
+                      color: _faded(green.withValues(alpha: 0.45), o),
+                      spreadRadius: 2),
+                  BoxShadow(
+                      color: _faded(green.withValues(alpha: 0.15), o),
+                      spreadRadius: 6),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('📋 ${l.missionCompleted}',
+                      style: TextStyle(
+                          color: _faded(green, o),
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace')),
+                  const SizedBox(height: 4),
+                  Text(l.missionDesc(mission.type, mission.target),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: _faded(Colors.white, o),
+                          fontSize: 12,
+                          fontFamily: 'monospace')),
+                  const SizedBox(height: 2),
+                  Text('⬤ ${mission.reward}',
+                      style: TextStyle(
+                          color: _faded(const Color(0xFFEF9F27), o),
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace')),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

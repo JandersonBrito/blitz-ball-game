@@ -39,11 +39,18 @@ class AudioService {
 
   // Intervalo mínimo entre repetições do mesmo tipo de som. Com dezenas de
   // bolas, sem isso o mesmo efeito tocaria centenas de vezes por segundo.
-  static const _minIntervalMs = {'hit': 35, 'break': 45, 'wall': 60};
+  // Índices: 0 = hit, 1 = break, 2 = wall. Checado antes de qualquer outra
+  // coisa: a física chama isto a cada quique.
+  static const _minIntervalMs = [35, 45, 60];
+  static const _kindHit = 0, _kindBreak = 1, _kindWall = 2;
+  final List<int> _lastPlayMs = [-1000000, -1000000, -1000000];
 
   final Map<String, List<AudioPlayer>> _players = {};
   final Map<String, int> _nextVoice = {};
-  final Map<String, int> _lastPlayMs = {};
+
+  /// Último volume aplicado em cada player: evita um setVolume (platform
+  /// channel) por efeito quando o volume não mudou.
+  final Map<AudioPlayer, double> _appliedVolume = {};
   final Stopwatch _clock = Stopwatch()..start();
   final Random _rng = Random();
 
@@ -106,9 +113,29 @@ class AudioService {
     }
   }
 
-  void playHit() => _play('hit', _hits[_rng.nextInt(_hits.length)]);
-  void playBreak() => _play('break', _break);
-  void playWall() => _play('wall', _wall, volumeScale: 0.6);
+  void playHit() {
+    if (_throttled(_kindHit)) return;
+    _play(_hits[_rng.nextInt(_hits.length)]);
+  }
+
+  void playBreak() {
+    if (_throttled(_kindBreak)) return;
+    _play(_break);
+  }
+
+  void playWall() {
+    if (_throttled(_kindWall)) return;
+    _play(_wall, volumeScale: 0.6);
+  }
+
+  /// True se o som deve ser pulado (desligado ou repetido rápido demais).
+  bool _throttled(int kind) {
+    if (!_sfxOn) return true;
+    final now = _clock.elapsedMilliseconds;
+    if (now - _lastPlayMs[kind] < _minIntervalMs[kind]) return true;
+    _lastPlayMs[kind] = now;
+    return false;
+  }
 
   void playWaveClear() => _playJingle(_waveClear);
   void playStageComplete() => _playJingle(_stageComplete);
@@ -127,15 +154,9 @@ class AudioService {
     _trigger(player, _settings!.sfxVolume);
   }
 
-  void _play(String kind, String file, {double volumeScale = 1.0}) {
-    if (!_sfxOn) return;
+  void _play(String file, {double volumeScale = 1.0}) {
     final voices = _players[file];
     if (voices == null || voices.isEmpty) return;
-
-    final now = _clock.elapsedMilliseconds;
-    final last = _lastPlayMs[kind];
-    if (last != null && now - last < (_minIntervalMs[kind] ?? 0)) return;
-    _lastPlayMs[kind] = now;
 
     final i = _nextVoice[file] ?? 0;
     _nextVoice[file] = (i + 1) % voices.length;
@@ -145,9 +166,11 @@ class AudioService {
   /// Reinicia o player do começo. No SoundPool não há aviso de fim de som,
   /// então o `stop()` é necessário para que o `resume()` toque de novo.
   void _trigger(AudioPlayer p, double volume) {
+    final setVolume = _appliedVolume[p] != volume;
+    if (setVolume) _appliedVolume[p] = volume;
     () async {
       await p.stop();
-      await p.setVolume(volume);
+      if (setVolume) await p.setVolume(volume);
       await p.resume();
     }()
         .catchError((Object e) => debugPrint('AudioService: falha no efeito: $e'));

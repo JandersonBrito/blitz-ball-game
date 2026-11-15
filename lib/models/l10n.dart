@@ -1,6 +1,7 @@
 import 'app_settings.dart';
 import 'element.dart';
 import 'daily_mission.dart';
+import 'graphics_quality.dart';
 
 class L10n {
   final AppLanguage lang;
@@ -188,6 +189,28 @@ class L10n {
   String get settingsMusic    => _t(['Música', 'Music', 'Música', 'Musique']);
   String get settingsVibration => _t(['Vibração', 'Vibration', 'Vibración', 'Vibration']);
   String get settingsSfx      => _t(['Efeitos sonoros', 'Sound effects', 'Efectos de sonido', 'Effets sonores']);
+
+  // ── Gráficos ──────────────────────────────────────────────────────────────
+  String get settingsGraphics => _t(['Gráficos', 'Graphics', 'Gráficos', 'Graphismes']);
+  String qualityName(GraphicsQuality q) => switch (q) {
+    GraphicsQuality.low    => _t(['Baixa', 'Low', 'Baja', 'Basse']),
+    GraphicsQuality.medium => _t(['Média', 'Medium', 'Media', 'Moyenne']),
+    GraphicsQuality.high   => _t(['Alta', 'High', 'Alta', 'Haute']),
+  };
+  String get autoQuality => _t(['Ajuste automático', 'Auto-adjust', 'Ajuste automático', 'Ajustement auto']);
+  String get autoQualityHint => _t([
+    'Baixa a qualidade se o jogo ficar abaixo de 45 FPS',
+    'Lowers quality if the game drops below 45 FPS',
+    'Baja la calidad si el juego cae por debajo de 45 FPS',
+    'Baisse la qualité si le jeu passe sous 45 FPS',
+  ]);
+  String get fpsLock => _t(['Limitar a 30 FPS', 'Cap at 30 FPS', 'Limitar a 30 FPS', 'Limiter à 30 FPS']);
+  String get fpsLockHint => _t([
+    'Economiza bateria e esquenta menos',
+    'Saves battery and runs cooler',
+    'Ahorra batería y calienta menos',
+    'Économise la batterie et chauffe moins',
+  ]);
 
   // ── Tutorial ──────────────────────────────────────────────────────────────
   String get rankingBtn => _t(['🏆 Ranking', '🏆 Leaderboard', '🏆 Clasificación', '🏆 Classement']);

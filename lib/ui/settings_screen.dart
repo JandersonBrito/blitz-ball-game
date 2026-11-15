@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/app_settings.dart';
+import '../models/graphics_quality.dart';
 import '../models/l10n.dart';
 import '../services/settings_service.dart';
 import '../services/purchase_service.dart';
@@ -211,6 +212,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  /// Qualidade gráfica, ajuste automático e limite de 30 FPS.
+  Widget _graphicsSection(L10n l, SettingsService settings) {
+    const accent = Color(0xFF1D9E75);
+    Widget chip(String label, bool selected, VoidCallback onTap) {
+      return GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? accent : Colors.transparent,
+            border: Border.all(color: selected ? accent : Colors.white24),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? Colors.white : Colors.white38,
+              fontSize: 11,
+              fontFamily: 'monospace',
+              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ),
+      );
+    }
+
+    Widget hint(String text) => Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(text,
+              style: const TextStyle(
+                  color: Colors.white24, fontSize: 9, fontFamily: 'monospace')),
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l.settingsGraphics,
+            style: const TextStyle(
+                color: Colors.white38,
+                fontSize: 10,
+                letterSpacing: 1,
+                fontFamily: 'monospace')),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final q in GraphicsQuality.values)
+              chip(l.qualityName(q), settings.graphicsQuality == q,
+                  () => settings.setGraphicsQuality(q)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        chip('${settings.autoQuality ? '✓' : '✕'} ${l.autoQuality}',
+            settings.autoQuality,
+            () => settings.setAutoQuality(!settings.autoQuality)),
+        hint(l.autoQualityHint),
+        const SizedBox(height: 10),
+        chip('${settings.fpsLock30 ? '✓' : '✕'} ${l.fpsLock}',
+            settings.fpsLock30, () => settings.setFpsLock30(!settings.fpsLock30)),
+        hint(l.fpsLockHint),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsService>();
@@ -388,6 +455,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onChanged: settings.setSfxVolume,
             ),
           ],
+
+          const SizedBox(height: 24),
+          _graphicsSection(l, settings),
 
           const SizedBox(height: 16),
           GestureDetector(

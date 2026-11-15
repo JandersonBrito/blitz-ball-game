@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show ChangeNotifier, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/widgets.dart';
 import 'package:unity_ads_plugin/unity_ads_plugin.dart';
+import 'ad_load_gate.dart';
 import 'consent_service.dart';
 import 'purchase_service.dart';
 
@@ -30,6 +31,23 @@ class AdService extends ChangeNotifier {
   DateTime? _lastAdShownAt;
 
   bool get _consented => ConsentService.instance.consented;
+
+  // Carregamentos esperam a jogada acabar e repetem com espera se falharem.
+  bool _gameplayActive = false;
+  late final AdLoadGate _interstitialGate =
+      AdLoadGate(_loadInterstitialNow, isBlocked: () => _gameplayActive);
+  late final AdLoadGate _rewardedGate =
+      AdLoadGate(_loadRewardedNow, isBlocked: () => _gameplayActive);
+
+  /// O jogo avisa quando uma jogada (tiro e volta das bolas) começa e acaba.
+  void setGameplayActive(bool active) {
+    if (_gameplayActive == active) return;
+    _gameplayActive = active;
+    if (!active) {
+      _interstitialGate.flush();
+      _rewardedGate.flush();
+    }
+  }
 
   /// Vale para todo intersticial; vídeos premiados também reiniciam o intervalo.
   bool get _interstitialAllowed {
@@ -68,6 +86,8 @@ class AdService extends ChangeNotifier {
       if (_initStarted) await _syncPrivacyConsent();
       _interstitialReady = false;
       _rewardedReady = false;
+      _interstitialGate.cancel();
+      _rewardedGate.cancel();
       _bannerWidget = null;
     }
     notifyListeners();
@@ -81,21 +101,37 @@ class AdService extends ChangeNotifier {
     } catch (_) {}
   }
 
-  void _loadInterstitial() {
+  void _loadInterstitial() => _interstitialGate.request();
+
+  void _loadRewarded() => _rewardedGate.request();
+
+  void _loadInterstitialNow() {
     if (!_consented) return;
     UnityAds.load(
       placementId: _interstitialPlacement,
-      onComplete: (_) => _interstitialReady = true,
-      onFailed: (_, __, ___) => _interstitialReady = false,
+      onComplete: (_) {
+        _interstitialReady = true;
+        _interstitialGate.loaded();
+      },
+      onFailed: (_, __, ___) {
+        _interstitialReady = false;
+        _interstitialGate.failed();
+      },
     );
   }
 
-  void _loadRewarded() {
+  void _loadRewardedNow() {
     if (!_consented) return;
     UnityAds.load(
       placementId: _rewardedPlacement,
-      onComplete: (_) => _rewardedReady = true,
-      onFailed: (_, __, ___) => _rewardedReady = false,
+      onComplete: (_) {
+        _rewardedReady = true;
+        _rewardedGate.loaded();
+      },
+      onFailed: (_, __, ___) {
+        _rewardedReady = false;
+        _rewardedGate.failed();
+      },
     );
   }
 

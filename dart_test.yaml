@@ -1,0 +1,5 @@
+tags:
+  # Benchmarks do loop do jogo: fora da suíte normal.
+  # Rodar com: flutter test --tags perf --run-skipped test/perf
+  perf:
+    skip: "benchmark; rode com --tags perf --run-skipped"

@@ -1,13 +1,32 @@
 import 'dart:math';
-import 'dart:ui';
-import 'package:flame/components.dart';
-import 'package:flame/collisions.dart';
-import 'package:flutter/material.dart' show Colors, Color, Paint, PaintingStyle, TextSpan, TextPainter, TextStyle, TextAlign, TextDirection;
+import 'package:flame/components.dart' show Vector2;
 import '../../models/element.dart';
+import '../status/block_status.dart';
 
 enum BlockType { normal, bonus, gold, elemPower, triple, boss, wall }
 
-class BlockComponent extends PositionComponent with CollisionCallbacks {
+/// Bloco do tabuleiro. Só dados: quem desenha é o GameRenderer (atlas em lote)
+/// e quem colide é a física do jogo, pelo grid. Não é um componente do Flame:
+/// Transform2D, hitbox e ciclo de vida custavam memória e CPU sem uso.
+class BlockComponent {
+  BlockComponent({
+    required this.position,
+    required this.type,
+    required this.hp,
+    required this.maxHp,
+    required this.element,
+    this.goldValue = 0,
+    this.elemPowerEl,
+    this.isBoss = false,
+  }) : size = isBoss
+            ? Vector2(blockSize * 2, blockSize * 2)
+            : Vector2(blockSize, blockSize);
+
+  static const double blockSize = 38.0;
+
+  /// Canto superior esquerdo, em pixels lógicos.
+  final Vector2 position;
+  final Vector2 size;
   final BlockType type;
   int hp;
   int maxHp;
@@ -16,27 +35,14 @@ class BlockComponent extends PositionComponent with CollisionCallbacks {
   final ElementType? elemPowerEl;
   final bool isBoss;
 
-  static const double blockSize = 38.0;
+  /// Status por turno (chamas, ácido, congelado), processados no fim da rodada.
+  final BlockStatus status = BlockStatus();
 
-  BlockComponent({
-    required Vector2 position,
-    required this.type,
-    required this.hp,
-    required this.maxHp,
-    required this.element,
-    this.goldValue = 0,
-    this.elemPowerEl,
-    this.isBoss = false,
-  }) : super(
-          position: position,
-          size: isBoss ? Vector2(blockSize * 2, blockSize * 2) : Vector2(blockSize, blockSize),
-        );
+  /// Próximo bloco na mesma célula do grid: lista ligada, sem alocação.
+  BlockComponent? nextInCell;
 
-  @override
-  Future<void> onLoad() async {
-    await super.onLoad();
-    add(RectangleHitbox());
-  }
+  /// Célula no grid (-1 = fora do grid ou bloco grande).
+  int gridCell = -1;
 
   bool get isAlive => hp > 0;
   double get hpRatio => maxHp > 0 ? hp / maxHp : 1.0;
@@ -62,216 +68,5 @@ class BlockComponent extends PositionComponent with CollisionCallbacks {
 
   void takeDamage(int dmg) {
     hp = max(0, hp - dmg);
-  }
-
-  Color get _bgColor {
-    if (type == BlockType.bonus) return const Color(0xFF534AB7);
-    if (type == BlockType.triple) return const Color(0xFF1a1a2e);
-    final e = elementDataMap[element]!;
-    final ratio = hpRatio;
-    return Color.lerp(e.blockBg.withOpacity(0.45), e.blockBg, ratio) ?? e.blockBg;
-  }
-
-  Color get _borderColor {
-    if (isBoss || type == BlockType.gold) return const Color(0xFFEF9F27);
-    if (type == BlockType.bonus) return const Color(0xFF7F77DD);
-    if (type == BlockType.triple) return Colors.white;
-    if (type == BlockType.elemPower && elemPowerEl != null) {
-      return elementDataMap[elemPowerEl!]!.blockBorder;
-    }
-    return elementDataMap[element]!.blockBorder;
-  }
-
-  @override
-  void render(Canvas canvas) {
-    if (type == BlockType.wall) {
-      _renderWall(canvas);
-      return;
-    }
-
-    final w = size.x, h = size.y;
-    final rect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(2, 2, w - 4, h - 4),
-      const Radius.circular(6),
-    );
-
-    // background
-    final bgPaint = Paint()..color = _bgColor;
-    canvas.drawRRect(rect, bgPaint);
-
-    // border
-    final borderPaint = Paint()
-      ..color = _borderColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = isBoss ? 3.0 : (type == BlockType.gold ? 2.5 : 1.5);
-    canvas.drawRRect(rect, borderPaint);
-
-    // boss glow pulse
-    if (isBoss) {
-      final t = DateTime.now().millisecondsSinceEpoch / 300.0;
-      final pulse = 0.5 + 0.5 * sin(t);
-      final glowPaint = Paint()
-        ..color = _bgColor.withOpacity(0.2 + pulse * 0.15);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(Rect.fromLTWH(-4, -4, w + 8, h + 8), const Radius.circular(12)),
-        glowPaint,
-      );
-      // hp bar
-      final barX = 8.0, barY = h - 10.0, barW = w - 16;
-      canvas.drawRect(Rect.fromLTWH(barX, barY, barW, 5), Paint()..color = const Color(0x66000000));
-      final barColor = hpRatio > 0.5
-          ? const Color(0xFF1D9E75)
-          : hpRatio > 0.25
-              ? const Color(0xFFBA7517)
-              : const Color(0xFFE24B4A);
-      canvas.drawRect(Rect.fromLTWH(barX, barY, barW * hpRatio, 5), Paint()..color = barColor);
-    }
-
-    _renderText(canvas, w, h);
-  }
-
-  void _renderText(Canvas canvas, double w, double h) {
-    final center = Offset(w / 2, h / 2);
-    switch (type) {
-      case BlockType.bonus:
-        _drawText(canvas, '+1', center, 11, Colors.white);
-        break;
-      case BlockType.triple:
-        // 3 dots fan
-        final dots = [Offset(-6, 0), const Offset(0, -7), const Offset(6, 0)];
-        final dotPaint = Paint()..color = Colors.white;
-        for (final d in dots) {
-          canvas.drawCircle(center + d, 3, dotPaint);
-        }
-        break;
-      case BlockType.elemPower:
-        if (elemPowerEl != null) {
-          _drawText(canvas, elementDataMap[elemPowerEl!]!.icon, center, 13, Colors.white);
-        }
-        break;
-      case BlockType.gold:
-        _drawText(canvas, '$hp', Offset(w / 2, h / 2 - 4), 10, elementDataMap[element]!.textColor);
-        _drawText(canvas, '+$goldValue', Offset(w / 2, h / 2 + 7), 7, const Color(0xFFEF9F27));
-        break;
-      case BlockType.boss:
-        if (element != ElementType.neutral) {
-          _drawText(canvas, elementDataMap[element]!.icon, Offset(w / 2, h / 2 - 14), 20, Colors.white);
-        }
-        _drawText(canvas, 'BOSS', Offset(w / 2, element != ElementType.neutral ? h / 2 + 2 : h / 2 - 8),
-            8, Colors.white70);
-        _drawText(canvas, '$hp',
-            Offset(w / 2, element != ElementType.neutral ? h / 2 + 16 : h / 2 + 6),
-            hp > 9999 ? 9 : hp > 999 ? 11 : 13, elementDataMap[element]!.textColor);
-        break;
-      case BlockType.normal:
-        if (goldValue > 0) {
-          _drawText(canvas, '$hp', Offset(w / 2, h / 2 - 4), hp > 99 ? 8 : 10, elementDataMap[element]!.textColor);
-          _drawText(canvas, '+$goldValue', Offset(w / 2, h / 2 + 7), 7, const Color(0xFFEF9F27));
-        } else {
-          _drawText(canvas, '$hp', center, hp > 99 ? 8 : 10, elementDataMap[element]!.textColor);
-          if (element != ElementType.neutral) {
-            _drawText(canvas, elementDataMap[element]!.icon, Offset(w - 4, 4), 7, Colors.white70,
-                textAlign: TextAlign.right);
-          }
-        }
-        break;
-      case BlockType.wall:
-        // Handled by _renderWall — never reaches here
-        break;
-    }
-  }
-
-  void _renderWall(Canvas canvas) {
-    final w = size.x, h = size.y;
-    final ratio = maxHp > 0 ? hp / maxHp : 1.0;
-    final rect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(2, 2, w - 4, h - 4),
-      const Radius.circular(4),
-    );
-
-    // Background — darkens as hp drops
-    final bgColor = Color.lerp(const Color(0xFF0D1220), const Color(0xFF1A2238), ratio)!;
-    canvas.drawRRect(rect, Paint()..color = bgColor);
-
-    // Diagonal hatching
-    canvas.save();
-    canvas.clipRRect(rect);
-    final stripeAlpha = (0x25 + (0x10 * ratio)).toInt().clamp(0, 255);
-    final stripePaint = Paint()
-      ..color = Color.fromARGB(stripeAlpha, 0x40, 0x60, 0x90)
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-    for (double s = -h; s < w + h; s += 7) {
-      canvas.drawLine(Offset(s + 2, 2), Offset(s + h - 2, h - 2), stripePaint);
-    }
-    canvas.restore();
-
-    // Element-colored border (or metallic if neutral), fades darker as hp drops
-    final baseColor = element != ElementType.neutral
-        ? elementDataMap[element]!.blockBorder
-        : const Color(0xFF4D6A9A);
-    final borderColor = Color.lerp(baseColor.withValues(alpha: 0.4), baseColor, ratio)!;
-    canvas.drawRRect(rect, Paint()
-      ..color = borderColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0);
-
-    // Orange bottom stripe — front face indicator
-    canvas.drawLine(
-      Offset(5, h - 5),
-      Offset(w - 5, h - 5),
-      Paint()
-        ..color = const Color(0xFFFF8C00)
-        ..strokeWidth = 2.5
-        ..style = PaintingStyle.stroke,
-    );
-
-    // Element icon (top-right corner)
-    if (element != ElementType.neutral) {
-      _drawText(canvas, elementDataMap[element]!.icon, Offset(w - 6, 7), 9, Colors.white70);
-    }
-
-    // Durability dots (one per maxHp, filled = remaining)
-    if (maxHp > 1) {
-      const dotR = 2.5;
-      final spacing = min(7.0, (w - 12) / maxHp);
-      final totalW = spacing * (maxHp - 1) + dotR * 2;
-      double dx = (w - totalW) / 2 + dotR;
-      for (int i = 0; i < maxHp; i++) {
-        final filled = i < hp;
-        canvas.drawCircle(
-          Offset(dx, h / 2 - 1),
-          dotR,
-          Paint()..color = filled ? const Color(0xFF7799CC) : const Color(0xFF2A3550),
-        );
-        if (filled) {
-          canvas.drawCircle(
-            Offset(dx, h / 2 - 1),
-            dotR,
-            Paint()
-              ..color = const Color(0xFF4D6A9A)
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 0.8,
-          );
-        }
-        dx += spacing;
-      }
-    } else {
-      // Single hit — just show down arrow
-      _drawText(canvas, '▼', Offset(w / 2, h / 2 - 1), 11, const Color(0xFF7799CC));
-    }
-  }
-
-  void _drawText(Canvas canvas, String text, Offset position, double fontSize, Color color,
-      {TextAlign textAlign = TextAlign.center}) {
-    final tp = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(color: color, fontSize: fontSize, fontFamily: 'monospace', fontWeight: FontWeight.bold),
-      ),
-      textDirection: TextDirection.ltr,
-      textAlign: textAlign,
-    )..layout();
-    tp.paint(canvas, position - Offset(tp.width / 2, tp.height / 2));
   }
 }

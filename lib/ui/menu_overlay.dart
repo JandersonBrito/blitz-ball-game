@@ -526,8 +526,10 @@ class _StarterOffer extends StatelessWidget {
               color: const Color(0xFF12121E),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: gold, width: 1.5),
+              // Halo nítido (sem blur): o fundo do card é opaco.
               boxShadow: [
-                BoxShadow(color: gold.withValues(alpha: 0.3), blurRadius: 18)
+                BoxShadow(color: gold.withValues(alpha: 0.3), spreadRadius: 3),
+                BoxShadow(color: gold.withValues(alpha: 0.12), spreadRadius: 8),
               ],
             ),
             child: Column(

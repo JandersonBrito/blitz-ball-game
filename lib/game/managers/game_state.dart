@@ -6,6 +6,7 @@ import '../../models/ball_skin.dart';
 import '../../models/element.dart';
 import '../../models/upgrade.dart';
 import '../../services/daily_mission_service.dart';
+import '../perf/perf_config.dart';
 
 class GameState extends ChangeNotifier {
   int score = 0;
@@ -81,33 +82,122 @@ class GameState extends ChangeNotifier {
     return gs;
   }
 
+  /// Grava só as chaves que mudaram: cada `setX` é uma mensagem no platform
+  /// channel e, no Android, uma regravação do arquivo de preferências.
   Future<void> save() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_kScore, score);
-    await prefs.setInt(_kGold, gold);
-    await prefs.setInt(_kBallCount, ballCount);
-    await prefs.setInt(_kLevel, level);
-    await prefs.setInt(_kWave, wave);
-    await prefs.setInt(_kStage, stage);
-    await prefs.setInt(_kWaveInStage, waveInStage);
-    await prefs.setInt(_kWavesInStage, wavesInStage);
-    await prefs.setBool(_kGameOver, gameOver);
-    await prefs.setBool(_kStageComplete, stageComplete);
-    await prefs.setInt(_kBallElement, ballElement.index);
-    await prefs.setInt(_kTotalRounds, totalRoundsPlayed);
-    await prefs.setBool(_kFreeContinueUsed, freeContinueUsed);
-    await prefs.setInt(_kGamesPlayed, gamesPlayed);
-    await prefs.setBool(_kStarterOfferSeen, starterOfferSeen);
-    await prefs.setInt(_kBallSkin, ballSkin.index);
-    for (final entry in upgrades.entries) {
-      await prefs.setInt('gs_upg_${entry.key}', entry.value);
+    final writes = <Future<bool>>[];
+    void putInt(String key, int value) {
+      if (prefs.getInt(key) != value) writes.add(prefs.setInt(key, value));
     }
+
+    void putBool(String key, bool value) {
+      if (prefs.getBool(key) != value) writes.add(prefs.setBool(key, value));
+    }
+
+    putInt(_kScore, score);
+    putInt(_kGold, gold);
+    putInt(_kBallCount, ballCount);
+    putInt(_kLevel, level);
+    putInt(_kWave, wave);
+    putInt(_kStage, stage);
+    putInt(_kWaveInStage, waveInStage);
+    putInt(_kWavesInStage, wavesInStage);
+    putBool(_kGameOver, gameOver);
+    putBool(_kStageComplete, stageComplete);
+    putInt(_kBallElement, ballElement.index);
+    putInt(_kTotalRounds, totalRoundsPlayed);
+    putBool(_kFreeContinueUsed, freeContinueUsed);
+    putInt(_kGamesPlayed, gamesPlayed);
+    putBool(_kStarterOfferSeen, starterOfferSeen);
+    putInt(_kBallSkin, ballSkin.index);
+    for (final entry in upgrades.entries) {
+      putInt('gs_upg_${entry.key}', entry.value);
+    }
+    await Future.wait(writes);
   }
+
+  // ── Gravação e avisos à UI ───────────────────────────────────────────────
+  //
+  // Mudanças vindas da UI (compras, upgrades, fim de fase) avisam e gravam na
+  // hora. As da jogada (pontos, ouro e bolas a cada acerto) só marcam sujo: o
+  // jogo chama [commitGameplay] uma vez por frame, que avisa o HUD no máximo
+  // a cada 100 ms e grava no máximo a cada 2 s de jogo; o fim da rodada
+  // chama [flush]. Antes, cada acerto gravava 25 chaves.
+
+  bool _uiDirty = false;
+  bool _unsaved = false;
+  double _lastNotifyAt = double.negativeInfinity;
+  double _lastSaveAt = 0;
+  Future<void>? _saving;
+  bool _saveAgain = false;
 
   @override
   void notifyListeners() {
+    _uiDirty = false;
     super.notifyListeners();
-    save();
+    _unsaved = true;
+    _requestSave();
+  }
+
+  void _gameplayChanged() {
+    _uiDirty = true;
+    _unsaved = true;
+  }
+
+  /// Chamado pelo jogo a cada frame, com o relógio do jogo em segundos.
+  /// Cada partida nova recomeça o relógio: tempo "voltando" conta como
+  /// intervalo vencido.
+  void commitGameplay(double now) {
+    // 1 ms de folga: 6 frames de 1/60 s somam 0,0999… e não 0,1.
+    const slack = 0.001;
+    final sinceNotify = now - _lastNotifyAt;
+    if (_uiDirty &&
+        (sinceNotify < 0 || sinceNotify >= PerfConfig.uiNotifyInterval - slack)) {
+      _lastNotifyAt = now;
+      _uiDirty = false;
+      super.notifyListeners(); // só a UI; a gravação tem o próprio ritmo
+    }
+    final sinceSave = now - _lastSaveAt;
+    if (_unsaved &&
+        (sinceSave < 0 || sinceSave >= PerfConfig.saveInterval - slack)) {
+      _lastSaveAt = now;
+      _requestSave();
+    }
+  }
+
+  /// Avisa a UI e grava agora o que estiver pendente (fim de rodada, app indo
+  /// para segundo plano).
+  Future<void> flush() {
+    if (_uiDirty) {
+      _uiDirty = false;
+      super.notifyListeners();
+    }
+    if (_unsaved) _requestSave();
+    return _saving ?? Future<void>.value();
+  }
+
+  /// No máximo uma gravação em andamento; pedidos no meio viram uma só depois.
+  void _requestSave() {
+    if (_saving != null) {
+      _saveAgain = true;
+      return;
+    }
+    _saving = _runSaves();
+  }
+
+  Future<void> _runSaves() async {
+    try {
+      do {
+        _saveAgain = false;
+        _unsaved = false;
+        await save();
+      } while (_saveAgain);
+    } catch (e) {
+      debugPrint('GameState: falha ao gravar: $e');
+    } finally {
+      _saving = null;
+    }
   }
 
   bool get isBossStage => stage % 5 == 0;
@@ -224,14 +314,25 @@ class GameState extends ChangeNotifier {
   void addGold(int amount) { gold += amount; notifyListeners(); }
 
   /// Ouro vindo dos blocos; [multiplier] vem do "Ouro em Dobro".
+  /// Caminho da jogada: a UI fica sabendo no próximo [commitGameplay].
   void earnGold(int base, {int multiplier = 1}) {
     final amount = base * multiplier;
     gold += amount;
     stageGoldEarned += amount;
-    notifyListeners();
+    _gameplayChanged();
   }
-  void addScore(int amount) { score += amount; notifyListeners(); }
-  void incrementBallCount() { ballCount++; notifyListeners(); }
+
+  /// Caminho da jogada: a UI fica sabendo no próximo [commitGameplay].
+  void addScore(int amount) {
+    score += amount;
+    _gameplayChanged();
+  }
+
+  /// Caminho da jogada: a UI fica sabendo no próximo [commitGameplay].
+  void incrementBallCount() {
+    ballCount++;
+    _gameplayChanged();
+  }
 
   void advanceStage() {
     ballCount = initialBalls;
