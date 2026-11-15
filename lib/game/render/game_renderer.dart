@@ -181,11 +181,20 @@ class GameRenderer {
   void _numbered(AtlasBatch batch, BlockComponent b, double x, double y) {
     final el = b.element.index;
     final gold = b.type == BlockType.gold;
+    // Núcleo/bastião da fortaleza: borda dourada e número menor (4–5 dígitos).
+    final vault = b.anchored && b.maxHp >= 1000;
     batch.add(
         Spr.blockFill, x, y, 1, _withAlpha(_bg[el], 0.45 + 0.55 * b.hpRatio));
-    batch.add(gold ? Spr.blockBorderGold : Spr.blockBorder, x, y, 1,
-        gold ? _gold : _border[el]);
+    batch.add(gold || vault ? Spr.blockBorderGold : Spr.blockBorder, x, y, 1,
+        gold || vault ? _gold : _border[el]);
     const half = BallzFlameGame.blockSize / 2;
+    if (vault) {
+      _number(batch, b.hp, x + half, y + half + 3, b.hp > 9999 ? 7 : 8,
+          _text[el]);
+      batch.addCentered(Spr.iconSmall + Spr.elementOffset(b.element), x + half,
+          y + 9, 0.9, _white70);
+      return;
+    }
     if (gold || b.goldValue > 0) {
       _number(batch, b.hp, x + half, y + half - 4, !gold && b.hp > 99 ? 8 : 10,
           _text[el]);

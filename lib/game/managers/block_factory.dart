@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flame/components.dart';
 import '../components/block_component.dart';
+import 'game_state.dart';
 import '../config/element_config.dart';
 import '../../models/element.dart';
 
@@ -283,5 +284,57 @@ List<BlockComponent> initBossStage(int level) {
   // Bottom row (row 3): cols 3–6
   for (int c = 3; c <= 6; c++) blocks.add(guard(c, 3));
 
+  return blocks;
+}
+
+/// HP do núcleo da fortaleza: 5.000 na primeira, +750 a cada fortaleza, teto
+/// em 12.000 (acima disso nem o upgrade máximo com ajuda fecha a conta).
+int fortressCoreHp(int stage) {
+  final k = max(0, (stage - GameState.fortressFirstStage) ~/ 10);
+  return min(12000, 5000 + 750 * k);
+}
+
+/// Fase fortaleza: um núcleo gigante guardado por dois bastiões e um anel de
+/// blocos comuns, mais bônus nas laterais. Tudo ancorado: a estrutura desce
+/// devagar, o que dá tempo de quebrar com upgrades ou, bem mais rápido, com a
+/// ajuda do anúncio.
+///
+///     . . s s s s s . .     s = bloco comum
+///     . t s B V B s t .     V = núcleo, B = bastião, t = bolas extras
+///     . . . s s s . . .
+List<BlockComponent> initFortressStage(int level) {
+  const blockSize = BlockComponent.blockSize;
+  final el = kCombatElements[_rng.nextInt(kCombatElements.length)];
+  final core = fortressCoreHp(level);
+  final bastion = core ~/ 3;
+  final blocks = <BlockComponent>[];
+
+  BlockComponent at(int col, int row, BlockType type, int hp,
+          {int gold = 0, ElementType? element}) =>
+      BlockComponent(
+        position: Vector2(col * blockSize + 1, row * blockSize + 1),
+        type: type,
+        hp: hp,
+        maxHp: hp,
+        element: element ?? el,
+        goldValue: gold,
+        anchored: true,
+      );
+
+  int small() => (level * (1.5 + _rng.nextDouble())).ceil();
+
+  for (var c = 2; c <= 6; c++) {
+    blocks.add(at(c, 0, BlockType.normal, small()));
+  }
+  blocks.add(at(2, 1, BlockType.normal, small()));
+  blocks.add(at(6, 1, BlockType.normal, small()));
+  blocks.add(at(3, 1, BlockType.normal, bastion, gold: core ~/ 60));
+  blocks.add(at(5, 1, BlockType.normal, bastion, gold: core ~/ 60));
+  blocks.add(at(4, 1, BlockType.normal, core, gold: core ~/ 20));
+  for (var c = 3; c <= 5; c++) {
+    blocks.add(at(c, 2, BlockType.normal, small()));
+  }
+  blocks.add(at(1, 1, BlockType.triple, 0, element: ElementType.neutral));
+  blocks.add(at(7, 1, BlockType.triple, 0, element: ElementType.neutral));
   return blocks;
 }

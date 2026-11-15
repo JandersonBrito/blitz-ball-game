@@ -523,6 +523,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                         if (!state.showHelpOffer) return const SizedBox.shrink();
                         return Positioned.fill(
                           child: HelpOfferOverlay(
+                            fortress: state.isFortressStage,
                             onWatchAd: AdService.instance.isRewardedReady
                                 ? _handleHelpOfferAccepted
                                 : null,

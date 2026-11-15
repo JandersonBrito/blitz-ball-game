@@ -124,7 +124,12 @@ class _MenuOverlayState extends State<MenuOverlay> {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Stage number
-          Text(state.isBossStage ? '👹 ${l.boss}' : l.stage,
+          Text(
+              state.isBossStage
+                  ? '👹 ${l.boss}'
+                  : state.isFortressStage
+                      ? '🏰 ${l.fortress}'
+                      : l.stage,
               style: const TextStyle(
                   color: Colors.white38,
                   fontSize: 11,
@@ -135,7 +140,9 @@ class _MenuOverlayState extends State<MenuOverlay> {
               style: TextStyle(
                   color: state.isBossStage
                       ? const Color(0xFFE24B4A)
-                      : Colors.white,
+                      : state.isFortressStage
+                          ? const Color(0xFFEF9F27)
+                          : Colors.white,
                   fontSize: 52,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'monospace')),
@@ -143,6 +150,13 @@ class _MenuOverlayState extends State<MenuOverlay> {
             Text(l.bossTip,
                 style: const TextStyle(
                     color: Color(0xFFE24B4A),
+                    fontSize: 11,
+                    fontFamily: 'monospace')),
+          if (state.isFortressStage)
+            Text(l.fortressTip,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: Color(0xFFEF9F27),
                     fontSize: 11,
                     fontFamily: 'monospace')),
 
@@ -205,7 +219,9 @@ class _MenuOverlayState extends State<MenuOverlay> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: state.isBossStage
                         ? const Color(0xFF993C1D)
-                        : const Color(0xFF1D9E75),
+                        : state.isFortressStage
+                            ? const Color(0xFFBA7517)
+                            : const Color(0xFF1D9E75),
                     foregroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 48),
                     shape: RoundedRectangleBorder(
@@ -214,7 +230,9 @@ class _MenuOverlayState extends State<MenuOverlay> {
                   child: Text(
                     state.isBossStage
                         ? l.fightBoss
-                        : l.startWave(state.waveInStage),
+                        : state.isFortressStage
+                            ? l.fightFortress
+                            : l.startWave(state.waveInStage),
                     style: const TextStyle(
                         fontFamily: 'monospace', fontWeight: FontWeight.bold),
                   ),

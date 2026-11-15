@@ -1,8 +1,51 @@
 # Notas da versão (Play Console > "O que há de novo", máx. 500 caracteres por idioma)
 
-## 1.1.0 (versionCode 14) — versão atual
+## 1.1.0 (versionCode 15) — versão atual
 
-### Português (pt-BR)
+<pt-BR>
+🏰 Nova fase Fortaleza!
+
+• A partir da fase 17, a cada 10 fases: um núcleo dourado com milhares de HP
+• Quebre-o aos poucos com upgrades, ou assista a um anúncio: dano 3× e +8 bolas
+• A ajuda aparece logo no início e vem junto ao continuar depois do game over
+• Recompensa de ouro bem maior
+• A Fortaleza desce devagar: dá tempo de planejar cada tiro
+</pt-BR>
+
+<en-US>
+🏰 New Fortress stage!
+
+• From stage 17, every 10 stages: a golden core with thousands of HP
+• Chip away at it with upgrades, or watch an ad: 3× damage and +8 balls
+• Help is offered early and also comes with Continue after a game over
+• Much bigger gold reward
+• The Fortress descends slowly, so you have time to plan every shot
+</en-US>
+
+<es-419>
+🏰 ¡Nueva etapa Fortaleza!
+
+• Desde la etapa 17, cada 10 etapas: un núcleo dorado con miles de HP
+• Rómpelo poco a poco con mejoras, o mira un anuncio: daño 3× y +8 bolas
+• La ayuda aparece pronto y también llega al continuar tras el game over
+• Recompensa de oro mucho mayor
+• La Fortaleza baja despacio: tienes tiempo para planear cada tiro
+</es-419>
+
+<fr-FR>
+🏰 Nouveau niveau Forteresse !
+
+• Dès le niveau 17, tous les 10 niveaux : un noyau doré avec des milliers de PV
+• Brisez-le peu à peu avec des améliorations, ou regardez une pub : dégâts ×3 et +8 balles
+• L'aide arrive tôt et s'applique aussi au « Continuer » après un game over
+• Récompense en or bien plus grande
+• La Forteresse descend lentement : le temps de planifier chaque tir
+</fr-FR>
+
+---
+
+## 1.1.0 (versionCode 14) — build anterior
+
 <pt-BR>
 🔥 Nova era elemental! 5 elementos: Fogo, Água, Vento, Raio e Terra.
 
@@ -14,7 +57,6 @@
 • Missões diárias novas e ícone novo
 </pt-BR>
 
-### English (en-US)
 <en-US>
 🔥 A new elemental era! 5 elements: Fire, Water, Wind, Lightning and Earth.
 
@@ -26,7 +68,6 @@
 • New daily missions and a new icon
 </en-US>
 
-### Español (es-419)
 <es-419>
 🔥 ¡Una nueva era elemental! 5 elementos: Fuego, Agua, Viento, Rayo y Tierra.
 
@@ -38,7 +79,6 @@
 • Misiones diarias nuevas e ícono nuevo
 </es-419>
 
-### Français (fr-FR)
 <fr-FR>
 🔥 Une nouvelle ère élémentaire ! 5 éléments : Feu, Eau, Vent, Foudre et Terre.
 
@@ -54,7 +94,6 @@
 
 ## 1.1.0 (versionCode 13) — build anterior, não publicado com estas novidades
 
-### Português (pt-BR)
 <pt-BR>
 🔥 Nova era elemental! Agora são 5 elementos: Fogo, Água, Vento, Raio e Terra.
 
@@ -66,7 +105,6 @@
 • Status nos blocos: chamas, gelo, lama e vapor
 </pt-BR>
 
-### English (en-US)
 <en-US>
 🔥 A new elemental era! Now with 5 elements: Fire, Water, Wind, Lightning and Earth.
 
@@ -78,7 +116,6 @@
 • Block status effects: burning, frozen, mud and steam
 </en-US>
 
-### Español (es-419)
 <es-419>
 🔥 ¡Una nueva era elemental! Ahora con 5 elementos: Fuego, Agua, Viento, Rayo y Tierra.
 
@@ -90,7 +127,6 @@
 • Estados en bloques: llamas, hielo, lodo y vapor
 </es-419>
 
-### Français (fr-FR)
 <fr-FR>
 🔥 Une nouvelle ère élémentaire ! 5 éléments : Feu, Eau, Vent, Foudre et Terre.
 
@@ -104,6 +140,7 @@
 
 ## Alterações técnicas (internas, não vão para a loja)
 
+- Fase Fortaleza (`GameState.isFortress`, `initFortressStage`): a cada 10 fases a partir da 17, núcleo de 5.000 HP (+750 por fortaleza, teto 12.000), blocos `anchored` que descem 1 linha a cada 3 rodadas. Ajuda do anúncio na fortaleza: 3× de dano, +8 bolas, oferta na rodada 2; o continue após game over também ativa a ajuda. Testes em `test/game/fortress_test.dart`.
 - Sistema de elementos reescrito: o triângulo de vantagem e o seletor de elemento saíram; Fogo+/Água+/Vento+ viram níveis dos especiais automaticamente no primeiro load (ninguém perde ouro).
 - Novos rewarded: "Especial agora" e "Escolher elemento" (1× por partida cada) e "Dobrar moedas" no game over.
 - Tutorial com 7 slides (combos, status e especiais).

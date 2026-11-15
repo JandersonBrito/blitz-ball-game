@@ -18,6 +18,32 @@ class L10n {
         'derrota al jefe para avanzar',
         'battez le boss pour avancer',
       ]);
+  String get fortress =>
+      _t(['FORTALEZA', 'FORTRESS', 'FORTALEZA', 'FORTERESSE']);
+  String get fortressTip => _t([
+        'quebre o núcleo dourado · a ajuda triplica o dano',
+        'break the golden core · help triples your damage',
+        'rompe el núcleo dorado · la ayuda triplica el daño',
+        'brisez le noyau doré · l\'aide triple les dégâts',
+      ]);
+  String get fightFortress => '🏰 ${_t([
+            'Atacar Fortaleza',
+            'Attack Fortress',
+            'Atacar Fortaleza',
+            'Attaquer la forteresse'
+          ])}';
+  String get helpTripleDamage => _t([
+        'Dano triplicado',
+        'Triple damage',
+        'Daño triple',
+        'Dégâts triplés'
+      ]);
+  String get helpExtraBalls8 => _t([
+        '+8 bolas extras',
+        '+8 extra balls',
+        '+8 bolas extra',
+        '+8 balles supplémentaires'
+      ]);
   String get waveCleared => _t([
         'Wave concluída!',
         'Wave cleared!',

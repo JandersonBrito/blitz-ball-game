@@ -50,6 +50,7 @@ class BlockComponent {
     this.charges = 0,
     this.powerUp,
     this.isBoss = false,
+    this.anchored = false,
   }) : serial = ++_lastSerial,
        size = isBoss
             ? Vector2(blockSize * 2, blockSize * 2)
@@ -83,6 +84,10 @@ class BlockComponent {
   /// Qual power-up este coletável dá ([BlockType.powerup]).
   final PowerUpKind? powerUp;
   final bool isBoss;
+
+  /// Bloco de fortaleza: só desce a cada [BallzFlameGame.fortressDescentEvery]
+  /// rodadas (a estrutura toda junta), em vez de a cada rodada.
+  final bool anchored;
 
   /// Identificador único do bloco na partida. As bolas guardam o serial do
   /// último especial tocado ([BallPool.lastSpecial]) para gastar exatamente

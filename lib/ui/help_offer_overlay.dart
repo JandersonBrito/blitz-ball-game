@@ -7,10 +7,14 @@ class HelpOfferOverlay extends StatelessWidget {
   final VoidCallback? onWatchAd; // null quando ad não está disponível
   final VoidCallback onDismiss;
 
+  /// Fortaleza: a ajuda é mais forte (3x de dano e +8 bolas).
+  final bool fortress;
+
   const HelpOfferOverlay({
     super.key,
     required this.onWatchAd,
     required this.onDismiss,
+    this.fortress = false,
   });
 
   @override
@@ -55,11 +59,11 @@ class HelpOfferOverlay extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              _rewardRow('⚔️', l.helpDoubleDamage),
+              _rewardRow('⚔️', fortress ? l.helpTripleDamage : l.helpDoubleDamage),
               const SizedBox(height: 8),
               _rewardRow('💥', l.helpCrit),
               const SizedBox(height: 8),
-              _rewardRow('🔮', l.helpExtraBalls),
+              _rewardRow('🔮', fortress ? l.helpExtraBalls8 : l.helpExtraBalls),
               const SizedBox(height: 24),
               if (onWatchAd != null) ...[
                 SizedBox(

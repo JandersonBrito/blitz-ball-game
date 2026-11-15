@@ -282,10 +282,24 @@ class GameState extends ChangeNotifier {
     }
   }
 
-  bool get isBossStage => stage % 5 == 0;
-  bool get isCorridorStage => stage % 3 == 0 && stage % 5 != 0;
+  /// Fortaleza: a cada 10 fases (17, 27, 37...), a primeira só na 17 para o
+  /// jogador já ter alguns upgrades. Nunca cai em fase de boss (múltiplo de 5).
+  static const int fortressFirstStage = 17;
+  static bool isFortress(int s) => s >= fortressFirstStage && s % 10 == 7;
 
-  int wavesForStage(int s) => ((s - 1) ~/ 10) + 1;
+  bool get isBossStage => stage % 5 == 0;
+  bool get isFortressStage => isFortress(stage);
+  bool get isCorridorStage =>
+      stage % 3 == 0 && stage % 5 != 0 && !isFortressStage;
+
+  /// A fortaleza tem uma wave só: é um tabuleiro único e pesado.
+  int wavesForStage(int s) => isFortress(s) ? 1 : ((s - 1) ~/ 10) + 1;
+
+  /// Multiplicador de dano da ajuda (anúncio): 2x, 3x na fortaleza.
+  int get assistDamageMultiplier => isFortressStage ? 3 : 2;
+
+  /// Bolas extras da ajuda.
+  int get assistExtraBalls => isFortressStage ? 8 : (isBossStage ? 5 : 3);
 
   double getUpgradeValue(String id) {
     final lvl = upgrades[id] ?? 0;
@@ -297,7 +311,7 @@ class GameState extends ChangeNotifier {
   int get baseDamage {
     final lvl = upgrades['power'] ?? 0;
     final base = lvl == 0 ? 1 : upgradeDefs.firstWhere((u) => u.id == 'power').levels[lvl - 1].value.toInt();
-    return assistActive ? base * 2 : base;
+    return assistActive ? base * assistDamageMultiplier : base;
   }
 
   double get critChance {
@@ -550,7 +564,7 @@ class GameState extends ChangeNotifier {
   /// Sem vídeo disponível a oferta fica para uma próxima rodada da fase.
   void incrementStageRounds({required bool canOfferHelp}) {
     stageRoundsPlayed++;
-    final threshold = isBossStage ? 3 : 7;
+    final threshold = isFortressStage ? 2 : (isBossStage ? 3 : 7);
     if (canOfferHelp && stageRoundsPlayed >= threshold && !assistActive && !helpOfferDismissed) {
       showHelpOffer = true;
       notifyListeners();
@@ -558,7 +572,7 @@ class GameState extends ChangeNotifier {
   }
 
   void applyHelpAssist() {
-    ballCount += isBossStage ? 5 : 3;
+    ballCount += assistExtraBalls;
     assistActive = true;
     showHelpOffer = false;
     stageRoundsPlayed = 0;
@@ -582,6 +596,11 @@ class GameState extends ChangeNotifier {
 
   void continueAfterAd() {
     gameOver = false;
+    // Na fortaleza o continue já vem com a ajuda: é o segundo ponto de anúncio.
+    if (isFortressStage && !assistActive) {
+      ballCount += assistExtraBalls;
+      assistActive = true;
+    }
     notifyListeners();
   }
 

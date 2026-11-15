@@ -71,6 +71,9 @@ class BallzFlameGame extends FlameGame {
   /// Blocos com mais ouro que isto perdem 1 a cada rodada em que descem.
   static const int goldDecayFloor = 5;
 
+  /// A estrutura da fortaleza desce 1 linha a cada N rodadas.
+  static const int fortressDescentEvery = 3;
+
   static const double shotInterval = 0.08;
 
   static final double _minComp = sin(minBallAngle);
@@ -423,7 +426,11 @@ class BallzFlameGame extends FlameGame {
     final isBoss = gameState.isBossStage &&
         gameState.waveInStage == gameState.wavesInStage;
     final isCorridor = gameState.isCorridorStage && gameState.waveInStage == 1;
-    final newBlocks = isBoss
+    final isFortress = gameState.isFortressStage && gameState.waveInStage == 1;
+    _fortressTurn = 0;
+    final newBlocks = isFortress
+        ? initFortressStage(gameState.stage)
+        : isBoss
         ? initBossStage(gameState.stage)
         : isCorridor
             ? initCorridorStage(gameState.stage)
@@ -678,6 +685,9 @@ class BallzFlameGame extends FlameGame {
     gameState.flush();
   }
 
+  /// Rodadas desde que a fortaleza (ou qualquer tabuleiro) foi carregada.
+  int _fortressTurn = 0;
+
   // Scratch da descida por coluna: só cresce, nunca aloca por rodada.
   Int32List _descOrder = Int32List(0);
   final Float64List _colCeil = Float64List(cols);
@@ -854,6 +864,8 @@ class BallzFlameGame extends FlameGame {
     }
     final n = blocks.length;
     if (n == 0) return;
+    // Ancorados (fortaleza) só descem a cada [fortressDescentEvery] rodadas.
+    final anchoredStep = ++_fortressTurn % fortressDescentEvery == 0;
     if (_descOrder.length < n) _descOrder = Int32List(n * 2);
     final order = _descOrder;
     for (var i = 0; i < n; i++) {
@@ -878,7 +890,7 @@ class BallzFlameGame extends FlameGame {
       final c0 = ((b.position.x - 1) / blockSize).round();
       final span = (b.size.x / blockSize).round();
       final newY = b.position.y + blockSize;
-      var blocked = b.status.holdsDescent;
+      var blocked = b.status.holdsDescent || (b.anchored && !anchoredStep);
       if (!blocked) {
         for (var c = c0; c < c0 + span; c++) {
           if (c < 0 || c >= cols) continue;

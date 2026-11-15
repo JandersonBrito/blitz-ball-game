@@ -32,10 +32,12 @@ class HudOverlay extends StatelessWidget {
             // left group: stage + wave
             _HudChip(
                 label: l.hudStage,
-                value: '${state.stage}${state.isBossStage ? " 👹" : ""}',
+                value: '${state.stage}${state.isBossStage ? " 👹" : state.isFortressStage ? " 🏰" : ""}',
                 valueColor: state.isBossStage
                     ? const Color(0xFFE24B4A)
-                    : Colors.white),
+                    : state.isFortressStage
+                        ? const Color(0xFFEF9F27)
+                        : Colors.white),
             const SizedBox(width: 8),
             _HudChip(
                 label: l.hudWave,
