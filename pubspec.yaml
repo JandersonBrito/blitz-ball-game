@@ -1,7 +1,7 @@
 name: ballz_flutter
 description: Brick breaker with elements, upgrades and boss fights.
 publish_to: 'none'
-version: 1.1.0+13
+version: 1.1.0+14
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -29,8 +29,13 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: "assets/icons/elemental_ball_triade_espiral.png"
+  image_path: "assets/icons/icon.png"
   min_sdk_android: 21
+  # Ícone adaptativo (Android 8+): arte com fundo transparente sobre a cor do
+  # jogo; o inset deixa a arte dentro da zona segura (o sistema recorta o ícone).
+  adaptive_icon_background: "#0A0A14"
+  adaptive_icon_foreground: "assets/icons/icon.png"
+  adaptive_icon_foreground_inset: 18
 
 flutter:
   uses-material-design: true
