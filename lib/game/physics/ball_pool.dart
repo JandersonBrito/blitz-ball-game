@@ -237,6 +237,13 @@ class ShotQueue {
     length++;
   }
 
+  /// Troca o elemento de todos os tiros que ainda não saíram.
+  void setAllElements(int el) {
+    for (var k = 0; k < length; k++) {
+      _el[(_head + k) % _capacity] = el;
+    }
+  }
+
   bool popFront() {
     if (length == 0) return false;
     outDx = _dx[_head];

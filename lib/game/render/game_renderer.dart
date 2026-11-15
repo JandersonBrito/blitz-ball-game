@@ -159,7 +159,7 @@ class GameRenderer {
           batch.add(Spr.powerup, x, y);
           if (b.powerUp != null) {
             batch.addCentered(
-                Spr.powerupIcon + b.powerUp!.index,
+                Spr.powerIcon(b.powerUp!.index),
                 x + BallzFlameGame.blockSize / 2,
                 y + BallzFlameGame.blockSize / 2,
                 1,

@@ -72,6 +72,7 @@ void main() {
           adReady: false,
           onActivate: () => fired++,
           onAdActivate: () {},
+          onElementAd: () {},
         ));
     final fire = elementDataMap[ElementType.fire]!;
     expect(find.text(fire.icon), findsOneWidget, reason: 'ícone do elemento');
@@ -92,6 +93,7 @@ void main() {
           adReady: false,
           onActivate: () => fired++,
           onAdActivate: () {},
+          onElementAd: () {},
         ));
     await tester.tap(find.text(elementDataMap[ElementType.fire]!.icon));
     expect(fired, 0);
@@ -108,6 +110,7 @@ void main() {
           adReady: false,
           onActivate: () {},
           onAdActivate: () {},
+          onElementAd: () {},
         ));
     expect(find.text('0/100'), findsOneWidget);
     // Acertos chegam: só o anel/contador reconstroem (sem aviso do GameState).
@@ -132,6 +135,7 @@ void main() {
           adReady: false,
           onActivate: () {},
           onAdActivate: () {},
+          onElementAd: () {},
         ));
     expect(find.text('🔒'), findsOneWidget);
   });
@@ -151,6 +155,7 @@ void main() {
           adReady: false,
           onActivate: () => fired++,
           onAdActivate: () {},
+          onElementAd: () {},
         ));
     final fire = elementDataMap[ElementType.fire]!.icon;
     final water = elementDataMap[ElementType.water]!.icon;
@@ -177,6 +182,105 @@ void main() {
     expect(fired, 1);
   });
 
+  group('escolha do elemento da bola', () {
+    Widget btn(BallzFlameGame game, {bool adReady = false, VoidCallback? ad}) =>
+        SpecialButton(
+          game: game,
+          adReady: adReady,
+          onActivate: () {},
+          onAdActivate: () {},
+          onElementAd: ad ?? () {},
+        );
+
+    testWidgets('sem carga, sem anúncio e sem bola elemental: nada aparece',
+        (tester) async {
+      final game = await startedGame();
+      await pump(tester, btn(game));
+      final l = settings.l10n;
+      expect(find.text(l.transmuteChip(1)), findsNothing);
+      expect(find.text(l.swapChip), findsNothing);
+      expect(find.text(l.elementAdBtn), findsNothing);
+    });
+
+    testWidgets('carga nova abre a escolha sozinha; tocar no elemento aplica',
+        (tester) async {
+      final game = await startedGame();
+      await pump(tester, btn(game));
+      final l = settings.l10n;
+      // Coleta o power-up: ganha 1 carga.
+      gs.addTransmuteCharge();
+      gs.notifyListeners();
+      await tester.pump();
+      expect(find.text(l.transmuteChip(1)), findsOneWidget);
+      expect(find.text(l.transmutePick), findsOneWidget,
+          reason: 'a escolha abriu sozinha');
+      final water = elementDataMap[ElementType.water]!.icon;
+      await tester.tap(find.text(water));
+      await tester.pump();
+      expect(gs.transmuteCharges, 0);
+      expect(find.text(l.transmutePick), findsNothing, reason: 'fechou');
+      expect(find.text(l.transmuteChip(1)), findsNothing);
+    });
+
+    testWidgets('carga que já existia ao montar não abre sozinha, só ao tocar',
+        (tester) async {
+      gs.addTransmuteCharge();
+      final game = await startedGame();
+      await pump(tester, btn(game));
+      final l = settings.l10n;
+      expect(find.text(l.transmuteChip(1)), findsOneWidget);
+      expect(find.text(l.transmutePick), findsNothing);
+      await tester.tap(find.text(l.transmuteChip(1)));
+      await tester.pump();
+      expect(find.text(l.transmutePick), findsOneWidget);
+      await tester.tap(find.text(l.transmuteChip(1)));
+      await tester.pump();
+      expect(find.text(l.transmutePick), findsNothing, reason: 'toca de novo fecha');
+    });
+
+    testWidgets('chip do anúncio de elemento: 1× por partida e só com rewarded',
+        (tester) async {
+      final game = await startedGame();
+      var asked = 0;
+      final l = settings.l10n;
+      await pump(tester, btn(game, adReady: false));
+      expect(find.text(l.elementAdBtn), findsNothing);
+      await pump(tester, btn(game, adReady: true, ad: () => asked++));
+      expect(find.text(l.elementAdBtn), findsOneWidget);
+      await tester.tap(find.text(l.elementAdBtn));
+      expect(asked, 1);
+      gs.elementAdUsed = true;
+      gs.notifyListeners();
+      await tester.pump();
+      expect(find.text(l.elementAdBtn), findsNothing, reason: 'já usou');
+    });
+
+    testWidgets('troca: chip aparece com bola elemental em voo e some depois',
+        (tester) async {
+      final game = await startedGame();
+      gs.ballCount = 2;
+      game.handlePointerPosition(Offset(180, game.floorY - 300));
+      game.shoot();
+      for (var i = 0; i < 100 && game.balls.count < 2; i++) {
+        game.update(1 / 60);
+      }
+      final l = settings.l10n;
+      await pump(tester, btn(game));
+      expect(find.text(l.swapChip), findsNothing, reason: 'bolas neutras');
+      game.balls.element[0] = ElementType.fire.index;
+      game.update(1 / 60); // publica swapAvailable
+      await tester.pump();
+      expect(find.text(l.swapChip), findsOneWidget);
+      await tester.tap(find.text(l.swapChip));
+      await tester.pump();
+      expect(find.text(l.swapPick), findsOneWidget);
+      await tester.tap(find.text(elementDataMap[ElementType.wind]!.icon));
+      await tester.pump();
+      expect(game.balls.element[0], ElementType.wind.index);
+      expect(find.text(l.swapChip), findsNothing, reason: '1 por turno');
+    });
+  });
+
   testWidgets('com um só poder comprado não há fileira de escolha',
       (tester) async {
     final game = await startedGame(); // só fogo comprado (setUp)
@@ -187,6 +291,7 @@ void main() {
           adReady: false,
           onActivate: () {},
           onAdActivate: () {},
+          onElementAd: () {},
         ));
     final fire = elementDataMap[ElementType.fire]!.icon;
     expect(find.text(fire), findsOneWidget, reason: 'só o ícone do botão');
@@ -200,6 +305,7 @@ void main() {
           adReady: adReady,
           onActivate: () {},
           onAdActivate: () {},
+          onElementAd: () {},
         );
     final l = settings.l10n;
     await pump(tester, btn(true));

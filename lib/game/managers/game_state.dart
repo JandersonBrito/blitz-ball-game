@@ -54,6 +54,13 @@ class GameState extends ChangeNotifier {
   /// Rewarded "especial imediato": uma vez por partida.
   bool specialAdUsed = false;
 
+  /// Cargas de Transmutação (power-up raro ou rewarded): cada uma deixa o
+  /// jogador escolher o elemento das bolas na rodada.
+  int transmuteCharges = 0;
+
+  /// Rewarded "escolher elemento": uma vez por partida.
+  bool elementAdUsed = false;
+
   /// Rewarded "dobrar moedas": uma vez por game over.
   bool runGoldDoubled = false;
 
@@ -78,6 +85,8 @@ class GameState extends ChangeNotifier {
   static const _kCodex = 'gs_codex';
   static const _kRunGold = 'gs_run_gold';
   static const _kSpecialAdUsed = 'gs_sp_ad_used';
+  static const _kTransmute = 'gs_transmute';
+  static const _kElementAdUsed = 'gs_el_ad_used';
   static const _kRunGoldDoubled = 'gs_run_doubled';
   static const _kMeter = 'gs_sp_meter';
   static const _kArmed = 'gs_sp_armed';
@@ -131,6 +140,8 @@ class GameState extends ChangeNotifier {
     gs.discoveredCombos = prefs.getInt(_kCodex) ?? 0;
     gs.runGoldEarned = prefs.getInt(_kRunGold) ?? 0;
     gs.specialAdUsed = prefs.getBool(_kSpecialAdUsed) ?? false;
+    gs.transmuteCharges = (prefs.getInt(_kTransmute) ?? 0).clamp(0, 99);
+    gs.elementAdUsed = prefs.getBool(_kElementAdUsed) ?? false;
     gs.runGoldDoubled = prefs.getBool(_kRunGoldDoubled) ?? false;
     gs.specialMeter = (prefs.getDouble(_kMeter) ?? 0).clamp(0.0, 1.0);
     final armedIdx = prefs.getInt(_kArmed) ?? 0;
@@ -171,6 +182,8 @@ class GameState extends ChangeNotifier {
     putInt(_kCodex, discoveredCombos);
     putInt(_kRunGold, runGoldEarned);
     putBool(_kSpecialAdUsed, specialAdUsed);
+    putInt(_kTransmute, transmuteCharges);
+    putBool(_kElementAdUsed, elementAdUsed);
     putBool(_kRunGoldDoubled, runGoldDoubled);
     putInt(_kArmed, armedElement.index);
     putInt(_kTideCd, tideCooldown);
@@ -444,6 +457,20 @@ class GameState extends ChangeNotifier {
 
   void clearAnnounce() => announceKey = null;
 
+  /// Ganha uma carga de Transmutação (power-up coletado ou rewarded).
+  void addTransmuteCharge() {
+    if (transmuteCharges < 99) transmuteCharges++;
+    _gameplayChanged();
+  }
+
+  /// Gasta uma carga; false se não havia.
+  bool useTransmuteCharge() {
+    if (transmuteCharges <= 0) return false;
+    transmuteCharges--;
+    _gameplayChanged();
+    return true;
+  }
+
   bool get speedUnlocked => (upgrades['speed'] ?? 0) > 0;
   bool fastForward = false;
   bool get fastForwardActive => fastForward && speedUnlocked;
@@ -576,6 +603,8 @@ class GameState extends ChangeNotifier {
     stageGoldEarned = 0;
     runGoldEarned = 0;
     specialAdUsed = false;
+    transmuteCharges = 0;
+    elementAdUsed = false;
     runGoldDoubled = false;
     specialMeter = 0;
     armedElement = ElementType.neutral;
@@ -665,6 +694,8 @@ class GameState extends ChangeNotifier {
     discoveredCombos = 0;
     runGoldEarned = 0;
     specialAdUsed = false;
+    transmuteCharges = 0;
+    elementAdUsed = false;
     runGoldDoubled = false;
     specialMeter = 0;
     armedElement = ElementType.neutral;

@@ -59,7 +59,14 @@ abstract final class Spr {
 
   /// Trecho de raio (barra arredondada branca) da Descarga.
   static const boltSeg = 65;
-  static const count = 66;
+
+  /// Ícone do power-up Transmutação (o 9º; os 8 primeiros são 41–48).
+  static const transmuteIcon = 66;
+  static const count = 67;
+
+  /// Ícone do power-up de índice [kind] (ordem de PowerUpKind).
+  static int powerIcon(int kind) =>
+      kind < 8 ? powerupIcon + kind : transmuteIcon;
 
   /// Posição do elemento nos grupos por elemento; -1 para neutro.
   static int elementOffset(ElementType e) => e.index - 1;
@@ -285,6 +292,9 @@ class SpriteAtlas {
       defs[Spr.powerupIcon + k] =
           _Def(tp.width, tp.height, (c) => tp.paint(c, Offset.zero));
     }
+    final transmuteTp = text('◈', 15);
+    defs[Spr.transmuteIcon] = _Def(
+        transmuteTp.width, transmuteTp.height, (c) => transmuteTp.paint(c, Offset.zero));
     final bombTp = text('💣', 13);
     defs[Spr.bomb] = _Def(b, b, (c) {
       c.drawRRect(cell, Paint()..color = const Color(0xFF3a1414));

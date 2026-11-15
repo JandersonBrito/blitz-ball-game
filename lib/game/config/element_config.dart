@@ -136,6 +136,10 @@ abstract final class ElementConfig {
   /// Chance de cada vaga da linha de power-ups virar um coletável especial.
   static const double powerupChance = 0.18;
 
+  /// Transmutação: fatia das vagas de power-up que viram este (raro). O resto
+  /// sorteia uniforme entre os demais.
+  static const double transmuteShare = 0.05;
+
   /// Chance de nascer uma bomba-relógio na linha de power-ups.
   static const double bombChance = 0.08;
 

@@ -233,6 +233,13 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     });
   }
 
+  void _handleElementAd() {
+    AdService.instance.showRewarded(() {
+      _flameGame.grantTransmuteViaAd();
+      setState(() {});
+    });
+  }
+
   void _handleDoubleGold() {
     AdService.instance.showRewarded(() {
       _gameState.runGoldDoubled = true;
@@ -359,6 +366,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                               setState(() {});
                             },
                             onAdActivate: _handleSpecialAd,
+                            onElementAd: _handleElementAd,
                           ),
                         );
                       },
@@ -745,7 +753,8 @@ class _ComboToast extends StatelessWidget {
 }
 
 /// Aviso curto com o nome (e o efeito) do power-up coletado ou do especial
-/// disparado. [keyId]: 'pu:<PowerUpKind>' ou 'sp:<ElementType>'.
+/// disparado. [keyId]: 'pu:<PowerUpKind>', 'sp:<ElementType>' ou
+/// 'el:<ElementType>' (elemento das bolas trocado).
 class _AnnounceToast extends StatelessWidget {
   final String keyId;
   const _AnnounceToast({super.key, required this.keyId});
@@ -755,6 +764,7 @@ class _AnnounceToast extends StatelessWidget {
     final l = context.watch<SettingsService>().l10n;
     final idx = int.tryParse(keyId.substring(3)) ?? -1;
     final isPower = keyId.startsWith('pu:');
+    final isShift = keyId.startsWith('el:');
     final String title;
     final String? desc;
     final Color accent;
@@ -762,6 +772,13 @@ class _AnnounceToast extends StatelessWidget {
       title = l.powerUpName(idx);
       desc = l.powerUpDesc(idx);
       accent = const Color(0xFF9BD1FF);
+    } else if (isShift) {
+      final el = idx >= 0 && idx < ElementType.values.length
+          ? ElementType.values[idx]
+          : ElementType.neutral;
+      title = l.elementShift(el);
+      desc = null;
+      accent = elementDataMap[el]!.ballColor;
     } else {
       title = l.specialName(idx);
       desc = null;

@@ -175,6 +175,18 @@ class BallzFlameGame extends FlameGame {
   /// 10 Hz). Só notifica quando o valor muda.
   final ValueNotifier<double> specialMeterProgress = ValueNotifier<double>(0);
 
+  /// true quando dá para trocar o elemento das bolas em voo (publicado a
+  /// cada frame; o botão do especial ouve).
+  final ValueNotifier<bool> swapAvailable = ValueNotifier<bool>(false);
+
+  /// Elemento que a Transmutação deu às bolas da rodada (0 = nenhum). Vale
+  /// para o próximo tiro, as bolas já em voo e as bolas bônus; zera no fim
+  /// da rodada.
+  int _roundEl = 0;
+
+  /// A troca de elemento (1 por turno) já foi usada neste turno?
+  bool _swapUsed = false;
+
   // ── Combos: fila do passo, resolvida fora do loop das bolas ──────────────
   static const int _maxQueuedCombos = 32;
   final Uint8List _comboBallEl = Uint8List(_maxQueuedCombos);
@@ -399,6 +411,7 @@ class BallzFlameGame extends FlameGame {
       windElapsed = -1;
       boltClock = -1;
       quakeT = -1;
+      _roundEl = 0;
     }
     AdService.instance
         .setGameplayActive(p == GamePhase.shooting || p == GamePhase.returning);
@@ -460,8 +473,10 @@ class BallzFlameGame extends FlameGame {
     final objects = n > PerfConfig.ballGroupThreshold
         ? PerfConfig.ballGroupThreshold
         : n;
-    // As bolas sempre saem neutras: elemento se absorve dos blocos especiais.
-    final el = ElementType.neutral.index;
+    // As bolas saem neutras (elemento se absorve dos blocos especiais), salvo
+    // se o jogador usou Transmutação antes do tiro.
+    final el = _roundEl;
+    _swapUsed = false;
     for (var k = 0; k < objects; k++) {
       _queue.pushBack(dx, dy, el, (k + 1) * n ~/ objects - k * n ~/ objects);
     }
@@ -487,6 +502,16 @@ class BallzFlameGame extends FlameGame {
     _setPhase(GamePhase.returning);
   }
 
+  /// Sorteia o power-up de uma vaga: Transmutação é rara
+  /// ([ElementConfig.transmuteShare]); os demais saem uniformes.
+  @visibleForTesting
+  static PowerUpKind pickPowerUp(Random rng) {
+    if (rng.nextDouble() < ElementConfig.transmuteShare) {
+      return PowerUpKind.transmute;
+    }
+    return PowerUpKind.values[rng.nextInt(PowerUpKind.values.length - 1)];
+  }
+
   void _spawnPowerUpRow() {
     const powerUpCount = 3;
     final cols = List.generate(9, (i) => i)..shuffle(_rng);
@@ -494,8 +519,7 @@ class BallzFlameGame extends FlameGame {
     for (final c in chosen) {
       // Vaga vira power-up não elemental de vez em quando.
       if (_rng.nextDouble() < ElementConfig.powerupChance) {
-        final kind =
-            PowerUpKind.values[_rng.nextInt(PowerUpKind.values.length)];
+        final kind = pickPowerUp(_rng);
         blocks.add(BlockComponent(
           position: Vector2(c * blockSize + 1, topOffset + 1),
           type: BlockType.powerup,
@@ -575,6 +599,7 @@ class BallzFlameGame extends FlameGame {
     if (_goldBoostRounds > 0) _goldBoostRounds--;
     if (portalTurns > 0) portalTurns--;
     _giantRound = false;
+    _roundEl = 0;
 
     // game over check
     if (blocks.any((b) => b.position.y + b.size.y >= floorY)) {
@@ -949,6 +974,7 @@ class BallzFlameGame extends FlameGame {
     }
     if (phase == GamePhase.returning) _updateReturning(frameDt * speed);
     specialMeterProgress.value = gameState.specialMeter;
+    swapAvailable.value = canSwapElement;
     gameState.commitGameplay(animTime);
   }
 
@@ -1179,8 +1205,7 @@ class BallzFlameGame extends FlameGame {
         HapticService.instance.blockBreak();
         gameState.incrementBallCount();
         DailyMissionService.instance.track(MissionType.collectBalls);
-        _queue.pushFront(
-            balls.vx[i], balls.vy[i], ElementType.neutral.index, 1);
+        _queue.pushFront(balls.vx[i], balls.vy[i], _roundEl, 1);
         _burst(block, 0xFF7F77DD, 0.6);
         return false;
 
@@ -1287,6 +1312,8 @@ class BallzFlameGame extends FlameGame {
         _goldBoostRounds = ElementConfig.goldBoostRounds;
       case PowerUpKind.magnet:
         _magnetPending = true; // coleta fora do loop de colisão
+      case PowerUpKind.transmute:
+        gameState.addTransmuteCharge(); // o jogador escolhe o elemento na UI
     }
   }
 
@@ -1745,6 +1772,83 @@ class BallzFlameGame extends FlameGame {
     gameState.notifyListeners();
     _fireSpecialAtAnchor(el);
     if (phase != GamePhase.shooting) _pendingForceReturn = false;
+    _requestRepaint();
+  }
+
+  // ── Escolha do elemento da bola ───────────────────────────────────────────
+
+  /// Transmutação: dá para usar se há carga e a rodada está na mira ou em voo.
+  bool get canTransmute =>
+      gameState.transmuteCharges > 0 &&
+      (phase == GamePhase.aim || phase == GamePhase.shooting);
+
+  /// Troca: só em voo, 1× por turno, e só se alguma bola já tem elemento.
+  bool get canSwapElement =>
+      phase == GamePhase.shooting && !_swapUsed && _hasElementalBall();
+
+  bool _hasElementalBall() {
+    for (var i = 0; i < balls.count; i++) {
+      if (balls.state[i] == BallPool.flying &&
+          balls.element[i] != ElementType.neutral.index) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Transmutação: gasta 1 carga e TODAS as bolas da rodada (já em voo, na
+  /// fila e as que o próximo tiro lançar) passam a ter [el].
+  bool transmuteBalls(ElementType el) {
+    if (el == ElementType.neutral || !canTransmute) return false;
+    if (!gameState.useTransmuteCharge()) return false;
+    _roundEl = el.index;
+    _queue.setAllElements(_roundEl);
+    for (var i = 0; i < balls.count; i++) {
+      if (balls.state[i] == BallPool.flying) balls.element[i] = _roundEl;
+    }
+    _elementShiftFx(el);
+    return true;
+  }
+
+  /// Troca: as bolas em voo que JÁ têm elemento passam a ter [el]. Uma vez
+  /// por turno; mantém a graça das combinações (a ordem continua importando).
+  bool swapBallElement(ElementType el) {
+    if (el == ElementType.neutral || !canSwapElement) return false;
+    _swapUsed = true;
+    for (var i = 0; i < balls.count; i++) {
+      if (balls.state[i] == BallPool.flying &&
+          balls.element[i] != ElementType.neutral.index) {
+        balls.element[i] = el.index;
+      }
+    }
+    swapAvailable.value = false;
+    _elementShiftFx(el);
+    return true;
+  }
+
+  /// Rewarded: ganha uma carga de Transmutação. Uma vez por partida; o
+  /// anúncio já foi assistido quando isto roda.
+  bool grantTransmuteViaAd() {
+    if (gameState.elementAdUsed) return false;
+    gameState.elementAdUsed = true;
+    gameState.addTransmuteCharge();
+    gameState.notifyListeners();
+    return true;
+  }
+
+  void _elementShiftFx(ElementType el) {
+    final color = elementDataMap[el]!.ballColor.toARGB32();
+    particles.burst(originX, floorY, color, profile.particlesPerBurst * 2,
+        speed: 160);
+    var shown = 0;
+    for (var i = 0; i < balls.count && shown < 12; i++) {
+      if (balls.state[i] != BallPool.flying) continue;
+      particles.burst(balls.x[i], balls.y[i], color, 3, speed: 70);
+      shown++;
+    }
+    gameState.announce('el:${el.index}');
+    AudioService.instance.playPickup();
+    HapticService.instance.hit();
     _requestRepaint();
   }
 

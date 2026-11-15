@@ -18,10 +18,13 @@ import '../services/settings_service.dart';
 /// frame — não depende do aviso da UI, limitado a 10 Hz. Fechado, o botão
 /// acende. Acima dele, um chip opcional para ativar na hora com anúncio
 /// (1× por partida).
-class SpecialButton extends StatelessWidget {
+class SpecialButton extends StatefulWidget {
   final BallzFlameGame game;
   final VoidCallback onActivate;
   final VoidCallback onAdActivate;
+
+  /// Pede o anúncio que dá 1 carga de Transmutação (1× por partida).
+  final VoidCallback onElementAd;
   final bool adReady;
 
   static const double size = 58;
@@ -31,8 +34,33 @@ class SpecialButton extends StatelessWidget {
     required this.game,
     required this.onActivate,
     required this.onAdActivate,
+    required this.onElementAd,
     required this.adReady,
   });
+
+  @override
+  State<SpecialButton> createState() => _SpecialButtonState();
+}
+
+/// Como o seletor de elemento da bola está aberto.
+enum _PickMode { transmute, swap }
+
+class _SpecialButtonState extends State<SpecialButton> {
+  static const double size = SpecialButton.size;
+  BallzFlameGame get game => widget.game;
+  VoidCallback get onActivate => widget.onActivate;
+  VoidCallback get onAdActivate => widget.onAdActivate;
+  bool get adReady => widget.adReady;
+
+  _PickMode? _mode;
+  int _prevCharges = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Cargas que já existiam ao montar não abrem a escolha sozinhas.
+    _prevCharges = context.read<GameState>().transmuteCharges;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,26 +85,97 @@ class SpecialButton extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        if (showAd) ...[
-          GestureDetector(
-            onTap: onAdActivate,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-              decoration: BoxDecoration(
-                color: const Color(0xCC0A0A14),
-                border: Border.all(color: const Color(0xFF1D9E75)),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(l.specialAdBtn,
-                  style: const TextStyle(
-                      color: Color(0xFF1D9E75),
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'monospace')),
-            ),
-          ),
-          const SizedBox(height: 6),
-        ],
+        // Escolha do elemento da bola + ações (ouve a troca disponível).
+        ValueListenableBuilder<bool>(
+          valueListenable: game.swapAvailable,
+          builder: (context, swapOk, _) {
+            final canTransmute = game.canTransmute;
+            final inPlay =
+                game.phase == GamePhase.aim || game.phase == GamePhase.shooting;
+            // Carga nova (power-up ou anúncio): abre a escolha sozinho.
+            if (state.transmuteCharges > _prevCharges && canTransmute) {
+              _mode = _PickMode.transmute;
+            }
+            _prevCharges = state.transmuteCharges;
+            if (_mode == _PickMode.transmute && !canTransmute) _mode = null;
+            if (_mode == _PickMode.swap && !swapOk) _mode = null;
+            final showElementAd = adReady && inPlay && !state.elementAdUsed;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (_mode != null) ...[
+                  Text(
+                      _mode == _PickMode.transmute
+                          ? l.transmutePick
+                          : l.swapPick,
+                      style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 9,
+                          fontFamily: 'monospace')),
+                  const SizedBox(height: 3),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final el in kCombatElements) ...[
+                        _PowerChip(
+                          element: el,
+                          selected: false,
+                          onTap: () {
+                            final ok = _mode == _PickMode.transmute
+                                ? game.transmuteBalls(el)
+                                : game.swapBallElement(el);
+                            if (ok) setState(() => _mode = null);
+                          },
+                        ),
+                        const SizedBox(width: 5),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                ],
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    if (canTransmute)
+                      _ActionChip(
+                        label: l.transmuteChip(state.transmuteCharges),
+                        color: const Color(0xFF9BD1FF),
+                        active: _mode == _PickMode.transmute,
+                        onTap: () => setState(() => _mode =
+                            _mode == _PickMode.transmute
+                                ? null
+                                : _PickMode.transmute),
+                      ),
+                    if (swapOk)
+                      _ActionChip(
+                        label: l.swapChip,
+                        color: const Color(0xFFFFC857),
+                        active: _mode == _PickMode.swap,
+                        onTap: () => setState(() => _mode =
+                            _mode == _PickMode.swap ? null : _PickMode.swap),
+                      ),
+                    if (showElementAd)
+                      _ActionChip(
+                        label: l.elementAdBtn,
+                        color: const Color(0xFF1D9E75),
+                        onTap: widget.onElementAd,
+                      ),
+                    if (showAd)
+                      _ActionChip(
+                        label: l.specialAdBtn,
+                        color: const Color(0xFF1D9E75),
+                        onTap: onAdActivate,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+              ],
+            );
+          },
+        ),
         Row(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -177,6 +276,41 @@ class SpecialButton extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// Chip de texto (ação rápida acima do botão do especial).
+class _ActionChip extends StatelessWidget {
+  final String label;
+  final Color color;
+  final bool active;
+  final VoidCallback onTap;
+  const _ActionChip(
+      {required this.label,
+      required this.color,
+      required this.onTap,
+      this.active = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color:
+              active ? color.withValues(alpha: 0.35) : const Color(0xCC0A0A14),
+          border: Border.all(color: color, width: active ? 2 : 1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                color: color,
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'monospace')),
+      ),
     );
   }
 }

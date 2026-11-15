@@ -1,4 +1,5 @@
 import 'package:ballz_flutter/game/combos/combo_defs.dart';
+import 'package:ballz_flutter/game/components/block_component.dart';
 import 'package:ballz_flutter/game/managers/game_state.dart';
 import 'package:ballz_flutter/models/element.dart';
 import 'package:ballz_flutter/models/l10n.dart';
@@ -44,6 +45,25 @@ void main() {
         }
       }
     });
+  });
+
+  test('power-ups (incluindo Transmutação) têm nome e descrição nos 4 idiomas',
+      () {
+    for (final lang in AppLanguage.values) {
+      final l = L10n(lang);
+      for (var k = 0; k < PowerUpKind.values.length; k++) {
+        expect(l.powerUpName(k), isNotEmpty, reason: 'nome $k em $lang');
+        expect(l.powerUpDesc(k), isNotEmpty, reason: 'descrição $k em $lang');
+      }
+      expect(l.transmuteChip(2), contains('2'));
+      expect(l.swapChip, isNotEmpty);
+      expect(l.elementAdBtn, isNotEmpty);
+      expect(l.transmutePick, isNotEmpty);
+      expect(l.swapPick, isNotEmpty);
+      for (final el in kCombatElements) {
+        expect(l.elementShift(el), contains(l.elemName(el)));
+      }
+    }
   });
 
   group('upgrades legados', () {

@@ -30,6 +30,10 @@ enum PowerUpKind {
 
   /// Ímã: coleta todas as moedas e bolas extras do tabuleiro.
   magnet,
+
+  /// Transmutação (raro): o jogador escolhe o elemento das bolas na rodada.
+  /// Sempre o último: a ordem é usada nos ícones do atlas.
+  transmute,
 }
 
 /// Bloco do tabuleiro. Só dados: quem desenha é o GameRenderer (atlas em lote)
