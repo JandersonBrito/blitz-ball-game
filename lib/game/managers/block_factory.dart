@@ -1,12 +1,12 @@
 import 'dart:math';
 import 'package:flame/components.dart';
 import '../components/block_component.dart';
+import '../config/element_config.dart';
 import '../../models/element.dart';
 
 final _rng = Random();
 
 const List<ElementType> allElements = ElementType.values;
-const List<ElementType> nonNeutralElements = [ElementType.fire, ElementType.water, ElementType.wind];
 
 // Wall barrier patterns: columns that WILL have wall blocks.
 // Each pattern leaves 2 gaps (single-column) spread across the 9-column grid.
@@ -30,7 +30,19 @@ const _layoutPatterns = [
   [1, 2, 4, 5, 6, 7],      // two clusters with edge + center gap
 ];
 
-List<BlockComponent> generateRow(int level, ElementType dominantEl, int rowIndex, {bool isPreBoss = false}) {
+/// Bloco especial (atravessável): elemento sorteado e cargas do config.
+BlockComponent makeSpecialBlock(int col, int rowIndex) => BlockComponent(
+      position: Vector2(col * BlockComponent.blockSize + 1,
+          rowIndex * BlockComponent.blockSize + 1),
+      type: BlockType.special,
+      hp: 0,
+      maxHp: 0,
+      element: kCombatElements[_rng.nextInt(kCombatElements.length)],
+      charges: ElementConfig.specialCharges,
+    );
+
+List<BlockComponent> generateRow(int level, ElementType dominantEl, int rowIndex,
+    {bool isPreBoss = false, bool allowSpecial = false}) {
   final blocks = <BlockComponent>[];
   const blockSize = BlockComponent.blockSize;
 
@@ -47,11 +59,10 @@ List<BlockComponent> generateRow(int level, ElementType dominantEl, int rowIndex
     final double goldThreshold  = isPreBoss ? 0.50 : 0.28;
     final bool isBonus   = r < bonusThreshold;
     final bool isGold    = !isBonus && r < goldThreshold;
-    final bool isElemPow = !isBonus && !isGold && r < (isPreBoss ? 0.56 : 0.34);
-    final bool isTriple  = !isBonus && !isGold && !isElemPow && r < (isPreBoss ? 0.70 : 0.48);
+    final bool isTriple  = !isBonus && !isGold && r < (isPreBoss ? 0.64 : 0.42);
 
     ElementType el = ElementType.neutral;
-    if (!isBonus && !isGold && !isElemPow && !isTriple) {
+    if (!isBonus && !isGold && !isTriple) {
       el = _rng.nextDouble() < 0.6
           ? dominantEl
           : allElements[_rng.nextInt(allElements.length)];
@@ -59,7 +70,7 @@ List<BlockComponent> generateRow(int level, ElementType dominantEl, int rowIndex
 
     int hp = 0;
     int maxHp = 0;
-    if (!isBonus && !isElemPow && !isTriple) {
+    if (!isBonus && !isTriple) {
       hp = (level * (0.5 + _rng.nextDouble())).ceil();
       maxHp = hp;
     }
@@ -67,11 +78,9 @@ List<BlockComponent> generateRow(int level, ElementType dominantEl, int rowIndex
     BlockType type = BlockType.normal;
     if (isBonus)        type = BlockType.bonus;
     else if (isGold)    type = BlockType.gold;
-    else if (isElemPow) type = BlockType.elemPower;
     else if (isTriple)  type = BlockType.triple;
 
-    final elemPowerEl = isElemPow ? nonNeutralElements[_rng.nextInt(3)] : null;
-    final goldValue   = isGold ? (1 + level * 0.25).ceil() : 0;
+    final goldValue = isGold ? (1 + level * 0.25).ceil() : 0;
 
     blocks.add(BlockComponent(
       position: Vector2(c * blockSize + 1, rowIndex * blockSize + 1),
@@ -80,8 +89,22 @@ List<BlockComponent> generateRow(int level, ElementType dominantEl, int rowIndex
       maxHp: maxHp,
       element: el,
       goldValue: goldValue,
-      elemPowerEl: elemPowerEl,
     ));
+  }
+
+  // No máximo 1 bloco especial na linha, numa coluna vazia.
+  if (allowSpecial) {
+    var occupied = 0;
+    for (final b in blocks) {
+      occupied |= 1 << ((b.position.x - 1) / blockSize).round();
+    }
+    final start = _rng.nextInt(9);
+    for (var k = 0; k < 9; k++) {
+      final c = (start + k) % 9;
+      if (occupied & (1 << c) != 0) continue;
+      blocks.add(makeSpecialBlock(c, rowIndex));
+      break;
+    }
   }
 
   // ensure at least one block
@@ -104,7 +127,7 @@ List<BlockComponent> generateWallBarrier(int rowIndex, int level) {
   final pattern = _wallBarrierPatterns[_rng.nextInt(_wallBarrierPatterns.length)];
   final hp = 1 + (level ~/ 5);
   // Each barrier row shares the same element
-  final el = nonNeutralElements[_rng.nextInt(nonNeutralElements.length)];
+  final el = kCombatElements[_rng.nextInt(kCombatElements.length)];
   return pattern.map((c) => BlockComponent(
     position: Vector2(c * blockSize + 1, rowIndex * blockSize + 1),
     type: BlockType.wall,
@@ -118,8 +141,13 @@ List<BlockComponent> initBlocks(int level) {
   final dom = allElements[_rng.nextInt(allElements.length)];
   final bool isPreBoss = level % 5 == 4;
   final blocks = <BlockComponent>[];
+  // No máximo 1 bloco especial nas 3 linhas iniciais (frequência da spec).
+  final specialRow = _rng.nextDouble() < ElementConfig.specialChance
+      ? _rng.nextInt(3)
+      : -1;
   for (int r = 0; r < 3; r++) {
-    blocks.addAll(generateRow(level, dom, r, isPreBoss: isPreBoss));
+    blocks.addAll(
+        generateRow(level, dom, r, isPreBoss: isPreBoss, allowSpecial: r == specialRow));
   }
   // Guarantee at least one bonus ball block on pre-boss stage
   if (isPreBoss && !blocks.any((b) => b.type == BlockType.bonus)) {
@@ -189,7 +217,7 @@ const _mazePatternsGrid = [
 
 List<BlockComponent> initCorridorStage(int level) {
   const blockSize = BlockComponent.blockSize;
-  final el = nonNeutralElements[_rng.nextInt(nonNeutralElements.length)];
+  final el = kCombatElements[_rng.nextInt(kCombatElements.length)];
   final grid = _mazePatternsGrid[_rng.nextInt(_mazePatternsGrid.length)];
   // HP scales more gently at low levels: level 3 → 14, level 6 → 23, level 9 → 32
   final hp = 5 + level * 3;
@@ -214,7 +242,7 @@ List<BlockComponent> initCorridorStage(int level) {
 }
 
 List<BlockComponent> initBossStage(int level) {
-  final el = nonNeutralElements[_rng.nextInt(3)];
+  final el = kCombatElements[_rng.nextInt(kCombatElements.length)];
   const bossCol = 4; // center of 9 cols (cols 4-5)
   const blockSize = BlockComponent.blockSize;
   final bossHp = level * 18;

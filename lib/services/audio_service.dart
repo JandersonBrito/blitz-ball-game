@@ -140,6 +140,27 @@ class AudioService {
   void playWaveClear() => _playJingle(_waveClear);
   void playStageComplete() => _playJingle(_stageComplete);
 
+  // ── Sons provisórios de combos/especiais ──────────────────────────────────
+  // TODO: trocar por arquivos próprios (um por elemento/combo) quando o
+  // usuário entregar os .wav; os ganchos já estão em todos os disparos.
+
+  /// Combinação elemental: quebra + hit agudo em camada.
+  void playCombo() {
+    if (_throttled(_kindBreak)) return;
+    _play(_break);
+    _play(_hits[3], volumeScale: 0.7);
+  }
+
+  /// Especial de elemento ativado: vinheta curta provisória.
+  void playSpecial() => _playJingle(_waveClear);
+
+  /// Power-up coletado no tabuleiro.
+  void playPickup() {
+    if (_throttled(_kindBreak)) return;
+    _play(_hits[0], volumeScale: 0.9);
+    _play(_hits[2], volumeScale: 0.9);
+  }
+
   bool get _sfxOn => (_settings?.soundEnabled ?? false) && (_settings?.sfxVolume ?? 0) > 0;
 
   void _playJingle(String file) {

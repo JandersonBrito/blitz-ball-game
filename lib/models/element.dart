@@ -1,7 +1,17 @@
 import 'package:flutter/material.dart';
 
 // ─── Elements ─────────────────────────────────────────────────────────────────
-enum ElementType { neutral, fire, water, wind }
+/// A ordem é salva em disco (índice): só adicione elementos no final.
+enum ElementType { neutral, fire, water, wind, lightning, earth }
+
+/// Elementos de combate (todos menos o neutro), na ordem do enum.
+const List<ElementType> kCombatElements = [
+  ElementType.fire,
+  ElementType.water,
+  ElementType.wind,
+  ElementType.lightning,
+  ElementType.earth,
+];
 
 class ElementData {
   final String label;
@@ -21,6 +31,8 @@ class ElementData {
   });
 }
 
+/// Cores pensadas para 5 elementos distinguíveis à distância, mesmo em bolas
+/// de 10 px: laranja-fogo, azul-água, verde-vento, violeta-raio e ocre-terra.
 const Map<ElementType, ElementData> elementDataMap = {
   ElementType.neutral: ElementData(
     label: 'Neutro', icon: '○',
@@ -29,12 +41,12 @@ const Map<ElementType, ElementData> elementDataMap = {
   ),
   ElementType.fire: ElementData(
     label: 'Fogo', icon: '🔥',
-    ballColor: Color(0xFFEF9F27),
+    ballColor: Color(0xFFFF7043),
     blockBg: Color(0xFFD85A30), blockBorder: Color(0xFF993C1D), textColor: Color(0xFFFAECE7),
   ),
   ElementType.water: ElementData(
     label: 'Água', icon: '💧',
-    ballColor: Color(0xFF85B7EB),
+    ballColor: Color(0xFF4FC3F7),
     blockBg: Color(0xFF378ADD), blockBorder: Color(0xFF185FA5), textColor: Color(0xFFE6F1FB),
   ),
   ElementType.wind: ElementData(
@@ -42,16 +54,14 @@ const Map<ElementType, ElementData> elementDataMap = {
     ballColor: Color(0xFF97C459),
     blockBg: Color(0xFF639922), blockBorder: Color(0xFF3B6D11), textColor: Color(0xFFEAF3DE),
   ),
+  ElementType.lightning: ElementData(
+    label: 'Raio', icon: '⚡',
+    ballColor: Color(0xFFCE93D8),
+    blockBg: Color(0xFF7E57C2), blockBorder: Color(0xFF4D2E8F), textColor: Color(0xFFF0E7FF),
+  ),
+  ElementType.earth: ElementData(
+    label: 'Terra', icon: '⛰',
+    ballColor: Color(0xFFD4A24C),
+    blockBg: Color(0xFF8D6E2F), blockBorder: Color(0xFF5D4717), textColor: Color(0xFFF3EAD3),
+  ),
 };
-
-// advantage table: attacker -> defender -> multiplier
-const Map<ElementType, Map<ElementType, double>> elementMultTable = {
-  ElementType.fire:    {ElementType.fire:1.0, ElementType.water:0.5, ElementType.wind:1.5, ElementType.neutral:1.0},
-  ElementType.water:   {ElementType.fire:1.5, ElementType.water:1.0, ElementType.wind:0.5, ElementType.neutral:1.0},
-  ElementType.wind:    {ElementType.fire:0.5, ElementType.water:1.5, ElementType.wind:1.0, ElementType.neutral:1.0},
-  ElementType.neutral: {ElementType.fire:1.0, ElementType.water:1.0, ElementType.wind:1.0, ElementType.neutral:1.0},
-};
-
-double getElementMult(ElementType atk, ElementType def) {
-  return elementMultTable[atk]?[def] ?? 1.0;
-}

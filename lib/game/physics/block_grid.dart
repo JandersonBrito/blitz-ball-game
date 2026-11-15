@@ -38,11 +38,14 @@ class BlockGrid {
   /// Faces de um bloco, para [exposedFaces].
   static const int faceLeft = 1, faceRight = 2, faceTop = 4, faceBottom = 8;
 
-  /// Power-ups são atravessados; o resto devolve a bola.
+  /// Power-ups, bombas e blocos especiais são atravessados; o resto devolve
+  /// a bola.
   static bool reflects(BlockComponent b) =>
       b.type != BlockType.bonus &&
       b.type != BlockType.triple &&
-      b.type != BlockType.elemPower;
+      b.type != BlockType.special &&
+      b.type != BlockType.powerup &&
+      b.type != BlockType.bomb;
 
   /// Só aloca quando o número de linhas muda (troca de tamanho da tela).
   void resize(int rows) {

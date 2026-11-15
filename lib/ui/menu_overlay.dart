@@ -5,7 +5,7 @@ import '../services/purchase_service.dart';
 import '../services/settings_service.dart';
 import '../services/games_cloud_service.dart';
 import '../models/ball_skin.dart';
-import '../models/element.dart';
+import 'codex_screen.dart';
 import 'upgrade_screen.dart';
 import 'settings_screen.dart';
 import 'tutorial_screen.dart';
@@ -27,6 +27,7 @@ class _MenuOverlayState extends State<MenuOverlay> {
   bool _showSettings = false;
   bool _showTutorial = false;
   bool _showMissions = false;
+  bool _showCodex = false;
 
   @override
   void initState() {
@@ -62,8 +63,11 @@ class _MenuOverlayState extends State<MenuOverlay> {
   Widget build(BuildContext context) {
     final state = context.watch<GameState>();
     final purchase = context.watch<PurchaseService>();
-    final onMainMenu =
-        !_showSettings && !_showUpgrades && !_showTutorial && !_showMissions;
+    final onMainMenu = !_showSettings &&
+        !_showUpgrades &&
+        !_showTutorial &&
+        !_showMissions &&
+        !_showCodex;
     // Só oferece com o preço já carregado, para nunca mostrar um botão vazio.
     final offerStarter = onMainMenu &&
         state.shouldOfferStarter &&
@@ -102,7 +106,11 @@ class _MenuOverlayState extends State<MenuOverlay> {
                     : _showMissions
                         ? DailyMissionsScreen(
                             onBack: () => setState(() => _showMissions = false))
-                        : _buildMainMenu(state, context),
+                        : _showCodex
+                            ? CodexScreen(
+                                onBack: () =>
+                                    setState(() => _showCodex = false))
+                            : _buildMainMenu(state, context),
       ),
     );
   }
@@ -154,8 +162,6 @@ class _MenuOverlayState extends State<MenuOverlay> {
 
           const SizedBox(height: 20),
 
-          // Element selector
-          _ElementSelector(),
           if (state.starterBallsActive) ...[
             const SizedBox(height: 10),
             _SkinSelector(),
@@ -232,6 +238,20 @@ class _MenuOverlayState extends State<MenuOverlay> {
                 const SizedBox(height: 8),
                 _MissionsButton(
                     onTap: () => setState(() => _showMissions = true)),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: () => setState(() => _showCodex = true),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF9BD1FF)),
+                    foregroundColor: const Color(0xFF9BD1FF),
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: Text(l.codexBtn,
+                      style: const TextStyle(
+                          fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                ),
                 const SizedBox(height: 8),
                 if (GamesCloudService.instance.rankingConfigured) ...[
                   OutlinedButton(
@@ -313,70 +333,6 @@ class _WaveDots extends StatelessWidget {
           ),
         );
       }),
-    );
-  }
-}
-
-class _ElementSelector extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final state = context.watch<GameState>();
-    final l = context.watch<SettingsService>().l10n;
-    return Column(
-      children: [
-        Text(l.elementTitle,
-            style: const TextStyle(
-                color: Colors.white30,
-                fontSize: 10,
-                letterSpacing: 1,
-                fontFamily: 'monospace')),
-        const SizedBox(height: 6),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          alignment: WrapAlignment.center,
-          children: ElementType.values.map((el) {
-            final info = elementDataMap[el]!;
-            final selected = state.ballElement == el;
-            final name = l.elemName(el);
-            return GestureDetector(
-              onTap: () {
-                state.ballElement = el;
-                state.notifyListeners();
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: selected ? info.blockBg : Colors.transparent,
-                  border: Border.all(
-                      color: selected ? info.blockBorder : Colors.white24),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '${info.icon} $name',
-                  style: TextStyle(
-                    color: selected ? info.textColor : Colors.white38,
-                    fontSize: 11,
-                    fontFamily: 'monospace',
-                    fontWeight:
-                        selected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-        if (state.ballElement != ElementType.neutral) ...[
-          const SizedBox(height: 4),
-          Text(l.elemAdvantage(state.ballElement),
-              style: const TextStyle(
-                  color: Colors.white24,
-                  fontSize: 9,
-                  fontFamily: 'monospace')),
-        ],
-      ],
     );
   }
 }

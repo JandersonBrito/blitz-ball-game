@@ -10,6 +10,7 @@ import '../services/purchase_service.dart';
 import '../services/games_cloud_service.dart';
 import 'consent_dialog.dart';
 import 'hud_overlay.dart';
+import 'special_button.dart';
 import 'menu_overlay.dart';
 import 'game_over_overlay.dart';
 import 'stage_complete_overlay.dart';
@@ -18,6 +19,7 @@ import 'help_offer_overlay.dart';
 import 'shop_screen.dart';
 import '../services/daily_mission_service.dart';
 import '../models/daily_mission.dart';
+import '../models/element.dart';
 
 class GameScreen extends StatefulWidget {
   final GameState gameState;
@@ -45,6 +47,14 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   // Aviso de missão concluída
   DailyMission? _missionToast;
   int _missionToastSeq = 0;
+
+  // Aviso de combinação nova descoberta (codex)
+  String? _comboToast;
+  int _comboToastSeq = 0;
+
+  // Aviso do power-up coletado / especial disparado
+  String? _announce;
+  int _announceSeq = 0;
 
   @override
   void initState() {
@@ -147,6 +157,28 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   void _onGameStateChange() {
     // O serviço ignora fases repetidas ou menores que a melhor já enviada.
     GamesCloudService.instance.submitStage(_gameState.stage);
+    final comboId = _gameState.comboToastId;
+    if (comboId != null) {
+      _gameState.clearComboToast();
+      final seq = ++_comboToastSeq;
+      setState(() => _comboToast = comboId);
+      Future.delayed(const Duration(milliseconds: 2800), () {
+        if (mounted && seq == _comboToastSeq) {
+          setState(() => _comboToast = null);
+        }
+      });
+    }
+    final announce = _gameState.announceKey;
+    if (announce != null) {
+      _gameState.clearAnnounce();
+      final seq = ++_announceSeq;
+      setState(() => _announce = announce);
+      Future.delayed(const Duration(milliseconds: 2200), () {
+        if (mounted && seq == _announceSeq) {
+          setState(() => _announce = null);
+        }
+      });
+    }
     if (_gameState.showWaveToast && !_waveToastVisible) {
       setState(() {
         _waveToastVisible = true;
@@ -193,6 +225,21 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   bool get _canContinueAfterAd =>
       AdService.instance.isRewardedReady &&
       !(PurchaseService.instance.adsRemoved && _gameState.freeContinueUsed);
+
+  void _handleSpecialAd() {
+    AdService.instance.showRewarded(() {
+      _flameGame.activateSpecialViaAd();
+      setState(() {});
+    });
+  }
+
+  void _handleDoubleGold() {
+    AdService.instance.showRewarded(() {
+      _gameState.runGoldDoubled = true;
+      _gameState.addGold(_gameState.runGoldEarned);
+      setState(() {});
+    });
+  }
 
   void _handleHelpOfferAccepted() {
     AdService.instance.showRewarded(() {
@@ -290,6 +337,31 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                           ),
                         ),
                       ),
+                    ),
+
+                    // Botão do especial: canto inferior direito, só durante a
+                    // jogada (mira e disparo). Poder do elemento atual.
+                    Consumer<GameState>(
+                      builder: (ctx, state, _) {
+                        final phase = _flameGame.phase;
+                        if (phase != GamePhase.aim &&
+                            phase != GamePhase.shooting) {
+                          return const SizedBox.shrink();
+                        }
+                        return Positioned(
+                          right: 8,
+                          bottom: 4,
+                          child: SpecialButton(
+                            game: _flameGame,
+                            adReady: AdService.instance.isRewardedReady,
+                            onActivate: () {
+                              _flameGame.activateSpecial();
+                              setState(() {});
+                            },
+                            onAdActivate: _handleSpecialAd,
+                          ),
+                        );
+                      },
                     ),
 
                     // Wave toast: o fade anima o alfa das cores, sem Opacity
@@ -463,6 +535,12 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                             onWatchAd: _canContinueAfterAd
                                 ? _handleContinueAfterAd
                                 : null,
+                            onDoubleGold: AdService.instance.isRewardedReady &&
+                                    !state.runGoldDoubled &&
+                                    state.runGoldEarned > 0
+                                ? _handleDoubleGold
+                                : null,
+                            doubleGoldAmount: state.runGoldEarned,
                           ),
                         );
                       },
@@ -477,6 +555,29 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                             : _MissionToast(
                                 key: ValueKey(_missionToastSeq),
                                 mission: _missionToast!),
+                      ),
+                    ),
+
+                    // "Nova combinação descoberta!" (codex)
+                    Positioned(
+                      top: 120, left: 0, right: 0,
+                      child: IgnorePointer(
+                        child: _comboToast == null
+                            ? const SizedBox.shrink()
+                            : _ComboToast(
+                                key: ValueKey(_comboToastSeq),
+                                comboId: _comboToast!),
+                      ),
+                    ),
+
+                    // Power-up coletado / especial disparado: nome e efeito.
+                    Positioned(
+                      top: 176, left: 0, right: 0,
+                      child: IgnorePointer(
+                        child: _announce == null
+                            ? const SizedBox.shrink()
+                            : _AnnounceToast(
+                                key: ValueKey(_announceSeq), keyId: _announce!),
                       ),
                     ),
 
@@ -578,6 +679,136 @@ class _WaveToast extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Toast "Nova combinação descoberta!", com o nome vindo do codex.
+class _ComboToast extends StatelessWidget {
+  final String comboId;
+  const _ComboToast({super.key, required this.comboId});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.watch<SettingsService>().l10n;
+    const violet = Color(0xFF9BD1FF);
+    return Center(
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 380),
+        builder: (_, t, __) {
+          final o = (t * 380 / 300).clamp(0.0, 1.0);
+          return Transform.scale(
+            scale: 0.7 + 0.3 * Curves.elasticOut.transform(t),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                color: _faded(const Color(0xFF14202e), o),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _faded(violet, o), width: 2),
+                boxShadow: [
+                  BoxShadow(
+                      color: _faded(violet.withValues(alpha: 0.4), o),
+                      spreadRadius: 2),
+                  BoxShadow(
+                      color: _faded(violet.withValues(alpha: 0.12), o),
+                      spreadRadius: 6),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(l.newComboToast,
+                      style: TextStyle(
+                          color: _faded(violet, o),
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace')),
+                  const SizedBox(height: 2),
+                  Text('${l.comboName(comboId)} — ${l.comboDesc(comboId)}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: _faded(Colors.white, o),
+                          fontSize: 11,
+                          fontFamily: 'monospace')),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Aviso curto com o nome (e o efeito) do power-up coletado ou do especial
+/// disparado. [keyId]: 'pu:<PowerUpKind>' ou 'sp:<ElementType>'.
+class _AnnounceToast extends StatelessWidget {
+  final String keyId;
+  const _AnnounceToast({super.key, required this.keyId});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.watch<SettingsService>().l10n;
+    final idx = int.tryParse(keyId.substring(3)) ?? -1;
+    final isPower = keyId.startsWith('pu:');
+    final String title;
+    final String? desc;
+    final Color accent;
+    if (isPower) {
+      title = l.powerUpName(idx);
+      desc = l.powerUpDesc(idx);
+      accent = const Color(0xFF9BD1FF);
+    } else {
+      title = l.specialName(idx);
+      desc = null;
+      accent = idx >= 0 && idx < ElementType.values.length
+          ? elementDataMap[ElementType.values[idx]]!.ballColor
+          : const Color(0xFFFFFFFF);
+    }
+    if (title.isEmpty) return const SizedBox.shrink();
+    return Center(
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 320),
+        builder: (_, t, __) {
+          final o = t.clamp(0.0, 1.0);
+          return Transform.scale(
+            scale: 0.8 + 0.2 * Curves.easeOutBack.transform(t),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              decoration: BoxDecoration(
+                color: _faded(const Color(0xFF14202e), o * 0.92),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _faded(accent, o), width: 2),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(title.toUpperCase(),
+                      style: TextStyle(
+                          color: _faded(accent, o),
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace')),
+                  if (desc != null && desc.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(desc,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: _faded(Colors.white, o),
+                            fontSize: 11,
+                            fontFamily: 'monospace')),
+                  ],
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

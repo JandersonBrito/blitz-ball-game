@@ -40,30 +40,194 @@ class L10n {
   ]);
 
   // ── Elements ──────────────────────────────────────────────────────────────
-  String get elementTitle => _t(['ELEMENTO DA BOLA', 'BALL ELEMENT', 'ELEMENTO DE LA BOLA', 'ÉLÉMENT DE BALLE']);
-  String get elemNeutral =>  _t(['Neutro', 'Neutral', 'Neutro', 'Neutre']);
-  String get elemFire =>     _t(['Fogo', 'Fire', 'Fuego', 'Feu']);
-  String get elemWater =>    _t(['Água', 'Water', 'Agua', 'Eau']);
-  String get elemWind =>     _t(['Vento', 'Wind', 'Viento', 'Vent']);
+  String get elemNeutral =>   _t(['Neutro', 'Neutral', 'Neutro', 'Neutre']);
+  String get elemFire =>      _t(['Fogo', 'Fire', 'Fuego', 'Feu']);
+  String get elemWater =>     _t(['Água', 'Water', 'Agua', 'Eau']);
+  String get elemWind =>      _t(['Vento', 'Wind', 'Viento', 'Vent']);
+  String get elemLightning => _t(['Raio', 'Lightning', 'Rayo', 'Foudre']);
+  String get elemEarth =>     _t(['Terra', 'Earth', 'Tierra', 'Terre']);
 
   String elemName(ElementType el) => switch (el) {
-    ElementType.neutral => elemNeutral,
-    ElementType.fire    => elemFire,
-    ElementType.water   => elemWater,
-    ElementType.wind    => elemWind,
+    ElementType.neutral   => elemNeutral,
+    ElementType.fire      => elemFire,
+    ElementType.water     => elemWater,
+    ElementType.wind      => elemWind,
+    ElementType.lightning => elemLightning,
+    ElementType.earth     => elemEarth,
   };
 
-  String elemAdvantage(ElementType el) {
-    final strong = _t(['forte vs', 'strong vs', 'fuerte vs', 'fort vs']);
-    final weak =   _t(['fraco vs', 'weak vs', 'débil vs', 'faible vs']);
-    final adv = el == ElementType.fire  ? elemWind
-              : el == ElementType.water ? elemFire
-              : elemWater;
-    final dis = el == ElementType.fire  ? elemWater
-              : el == ElementType.water ? elemWind
-              : elemFire;
-    return '✦ $strong $adv · $weak $dis';
+  // ── Especiais de elemento ─────────────────────────────────────────────────
+  String get specialsTitle => _t(['ESPECIAIS', 'SPECIALS', 'ESPECIALES', 'SPÉCIAUX']);
+  String get specialLevel => _t(['nível', 'level', 'nivel', 'niveau']);
+  String get specialBuy => _t(['Comprar', 'Buy', 'Comprar', 'Acheter']);
+  String get specialUpgrade => _t(['Evoluir', 'Upgrade', 'Mejorar', 'Améliorer']);
+  String get specialReady => _t(['ESPECIAL PRONTO!', 'SPECIAL READY!', '¡ESPECIAL LISTO!', 'SPÉCIAL PRÊT!']);
+  String get specialCooldown => _t(['recarregando', 'cooldown', 'recargando', 'recharge']);
+  String get specialAdBtn => _t(['▶ Especial agora', '▶ Special now', '▶ Especial ya', '▶ Spécial direct']);
+
+  String specialDesc(ElementType el) => switch (el) {
+    ElementType.fire => _t([
+      'Linha de fogo: sobe do chão ao topo queimando todos os blocos; dano cresce com o nível',
+      'Fire line: rises from floor to top burning every block; damage grows with level',
+      'Línea de fuego: sube del suelo al techo quemando todos los bloques; el daño crece con el nivel',
+      'Ligne de feu : monte du sol au plafond en brûlant tous les blocs ; dégâts selon le niveau',
+    ]),
+    ElementType.water => _t([
+      'Maré: uma onda parte de você, atinge todos os blocos e empurra tudo 1 linha para trás (com recarga)',
+      'Tide: a wave rolls out from you, hits every block and pushes all 1 row back (has cooldown)',
+      'Marea: una ola parte de ti, golpea todos los bloques y empuja todo 1 fila atrás (con recarga)',
+      'Marée : une vague part de vous, frappe tous les blocs et repousse tout d\'une ligne (recharge)',
+    ]),
+    ElementType.wind => _t([
+      'Rajada: lâminas de vento cortam todos os blocos e juntam tudo no centro, abrindo corredores',
+      'Gust: wind blades slice every block and pull everything to the center, opening lanes',
+      'Ráfaga: cuchillas de viento cortan todos los bloques y juntan todo al centro, abriendo pasillos',
+      'Rafale : des lames de vent tranchent tous les blocs et regroupent tout au centre',
+    ]),
+    ElementType.lightning => _t([
+      'Descarga: o dano salta entre blocos vizinhos; saltos crescem com o nível',
+      'Discharge: damage jumps between neighbors; jumps grow with level',
+      'Descarga: el daño salta entre vecinos; los saltos crecen con el nivel',
+      'Décharge : les dégâts sautent entre voisins ; portée selon le niveau',
+    ]),
+    ElementType.earth => _t([
+      'Impacto: dano % do HP atual em área; útil até no late game',
+      'Impact: % of current HP as area damage; scales into late game',
+      'Impacto: daño % del HP actual en área; útil en el late game',
+      'Impact : dégâts en % des PV actuels en zone',
+    ]),
+    ElementType.neutral => '',
+  };
+
+  // ── Avisos durante a partida (power-ups e especiais) ───────────────────────
+  String powerUpName(int kind) {
+    const names = <List<String>>[
+      ['Perfuração', 'Pierce', 'Perforación', 'Perforation'],
+      ['Bola Gigante', 'Giant Ball', 'Bola Gigante', 'Balle Géante'],
+      ['Portais', 'Portals', 'Portales', 'Portails'],
+      ['Buraco Negro', 'Black Hole', 'Agujero Negro', 'Trou Noir'],
+      ['Muralha', 'Wall', 'Muralla', 'Muraille'],
+      ['Mira Longa', 'Long Aim', 'Mira Larga', 'Visée Longue'],
+      ['Ouro em Dobro', 'Double Gold', 'Oro Doble', 'Or Double'],
+      ['Ímã', 'Magnet', 'Imán', 'Aimant'],
+    ];
+    return kind >= 0 && kind < names.length ? _t(names[kind]) : '';
   }
+
+  String powerUpDesc(int kind) {
+    const descs = <List<String>>[
+      ['As bolas atravessam vários blocos', 'Balls pass through several blocks', 'Las bolas atraviesan varios bloques', 'Les balles traversent plusieurs blocs'],
+      ['Bolas maiores nesta rodada: acertam mais blocos', 'Bigger balls this round: hit more blocks', 'Bolas más grandes esta ronda: golpean más bloques', 'Balles plus grosses ce tour : touchent plus de blocs'],
+      ['Um par de portais teletransporta as bolas', 'A pair of portals teleports the balls', 'Un par de portales teletransporta las bolas', 'Deux portails téléportent les balles'],
+      ['Puxa as bolas para um ponto por alguns segundos', 'Pulls the balls to one spot for a few seconds', 'Atrae las bolas a un punto unos segundos', 'Attire les balles vers un point quelques secondes'],
+      ['Uma muralha no fundo segura a próxima descida', 'A wall at the bottom blocks the next descent', 'Una muralla al fondo detiene el próximo descenso', 'Une muraille en bas bloque la prochaine descente'],
+      ['A mira mostra mais ricochetes por alguns turnos', 'The aim shows more bounces for a few turns', 'La mira muestra más rebotes unos turnos', 'La visée montre plus de rebonds quelques tours'],
+      ['Moedas em dobro nesta rodada e na próxima', 'Double coins this round and the next', 'Monedas dobles esta ronda y la siguiente', 'Pièces doublées ce tour et le suivant'],
+      ['Coleta todas as moedas e bolas extras do tabuleiro', 'Collects every coin and extra ball on the board', 'Recoge todas las monedas y bolas extra del tablero', 'Récupère toutes les pièces et balles bonus du plateau'],
+    ];
+    return kind >= 0 && kind < descs.length ? _t(descs[kind]) : '';
+  }
+
+  /// Nome do especial de cada elemento (índice de [ElementType]).
+  String specialName(int elementIndex) {
+    const names = <List<String>>[
+      ['', '', '', ''], // neutro
+      ['Linha de Fogo', 'Fire Line', 'Línea de Fuego', 'Ligne de feu'],
+      ['Maré', 'Tide', 'Marea', 'Marée'],
+      ['Rajada', 'Gust', 'Ráfaga', 'Rafale'],
+      ['Descarga', 'Discharge', 'Descarga', 'Décharge'],
+      ['Impacto', 'Impact', 'Impacto', 'Impact'],
+    ];
+    return elementIndex >= 0 && elementIndex < names.length
+        ? _t(names[elementIndex])
+        : '';
+  }
+
+  // ── Codex ─────────────────────────────────────────────────────────────────
+  String get codexBtn => _t(['📖 Codex', '📖 Codex', '📖 Códice', '📖 Codex']);
+  String get codexTitle => _t(['Codex de Combinações', 'Combo Codex', 'Códice de Combos', 'Codex des Combos']);
+  String codexProgress(int found, int total) =>
+      _t(['descobertas', 'discovered', 'descubiertas', 'découvertes']) + ': $found/$total';
+  String get codexHint => _t([
+    'Bola com elemento × bloco especial: a ordem importa',
+    'Elemental ball × special block: order matters',
+    'Bola con elemento × bloque especial: el orden importa',
+    'Balle élémentaire × bloc spécial : l\'ordre compte',
+  ]);
+  String get newComboToast => _t([
+    '✨ Nova combinação descoberta!',
+    '✨ New combo discovered!',
+    '✨ ¡Nueva combinación descubierta!',
+    '✨ Nouvelle combinaison découverte!',
+  ]);
+
+  String comboName(String id) {
+    const map = <String, List<String>>{
+      'explosion':      ['Explosão', 'Explosion', 'Explosión', 'Explosion'],
+      'acid_pool':      ['Ácido', 'Acid', 'Ácido', 'Acide'],
+      'fire_tornado':   ['Tornado de fogo', 'Fire tornado', 'Tornado de fuego', 'Tornade de feu'],
+      'plasma':         ['Plasma', 'Plasma', 'Plasma', 'Plasma'],
+      'meteor_rain':    ['Chuva de meteoros', 'Meteor rain', 'Lluvia de meteoros', 'Pluie de météores'],
+      'vapor':          ['Vapor', 'Steam', 'Vapor', 'Vapeur'],
+      'wave':           ['Onda', 'Wave', 'Ola', 'Vague'],
+      'rainstorm':      ['Tempestade', 'Rainstorm', 'Tormenta', 'Tempête'],
+      'electric_field': ['Campo eletrificado', 'Electric field', 'Campo eléctrico', 'Champ électrique'],
+      'mud':            ['Lama', 'Mud', 'Lodo', 'Boue'],
+      'embers':         ['Brasas', 'Embers', 'Brasas', 'Braises'],
+      'blizzard':       ['Nevasca', 'Blizzard', 'Ventisca', 'Blizzard'],
+      'hurricane':      ['Furacão', 'Hurricane', 'Huracán', 'Ouragan'],
+      'thunderstorm':   ['Tempestade elétrica', 'Thunderstorm', 'Tormenta eléctrica', 'Orage'],
+      'sandstorm':      ['Tempestade de areia', 'Sandstorm', 'Tormenta de arena', 'Tempête de sable'],
+      'overload':       ['Sobrecarga', 'Overload', 'Sobrecarga', 'Surcharge'],
+      'chain_current':  ['Corrente em cadeia', 'Chain current', 'Corriente en cadena', 'Courant en chaîne'],
+      'flash':          ['Relâmpago', 'Flash', 'Relámpago', 'Éclair'],
+      'thunder':        ['Trovão', 'Thunder', 'Trueno', 'Tonnerre'],
+      'magnetism':      ['Magnetismo', 'Magnetism', 'Magnetismo', 'Magnétisme'],
+      'magma':          ['Magma', 'Magma', 'Magma', 'Magma'],
+      'swamp':          ['Pântano', 'Swamp', 'Pantano', 'Marais'],
+      'boulder':        ['Pedregulho', 'Boulder', 'Peñasco', 'Rocher'],
+      'earthquake':     ['Terremoto', 'Earthquake', 'Terremoto', 'Séisme'],
+      'fissure':        ['Fissura', 'Fissure', 'Fisura', 'Fissure'],
+    };
+    final t = map[id];
+    return t != null ? _t(t) : id;
+  }
+
+  String comboDesc(String id) {
+    const map = <String, List<String>>{
+      'explosion':      ['Dano em área 3×3', '3×3 area damage', 'Daño en área 3×3', 'Dégâts de zone 3×3'],
+      'acid_pool':      ['Corrói os blocos em volta por 3 turnos', 'Corrodes nearby blocks for 3 turns', 'Corroe los bloques cercanos por 3 turnos', 'Corrode les blocs proches pendant 3 tours'],
+      'fire_tornado':   ['Redemoinho que anda pelo tabuleiro queimando', 'Whirlwind that roams the board burning', 'Remolino que recorre el tablero quemando', 'Tourbillon qui parcourt le plateau en brûlant'],
+      'plasma':         ['Feixe que atinge a linha inteira', 'Beam that hits the whole row', 'Rayo que golpea toda la fila', 'Rayon qui frappe toute la ligne'],
+      'meteor_rain':    ['Meteoros caem em blocos aleatórios', 'Meteors strike random blocks', 'Meteoros caen en bloques al azar', 'Des météores frappent des blocs au hasard'],
+      'vapor':          ['Blocos da área recebem dano dobrado por 1 turno', 'Area blocks take double damage for 1 turn', 'Los bloques del área reciben daño doble 1 turno', 'Les blocs de la zone subissent le double de dégâts 1 tour'],
+      'wave':           ['Empurra a linha atingida 1 casa para trás', 'Pushes the hit row 1 step back', 'Empuja la fila golpeada 1 casilla atrás', 'Repousse la ligne touchée d\'une case'],
+      'rainstorm':      ['Gotas caem em vários blocos', 'Drops strike several blocks', 'Gotas caen en varios bloques', 'Des gouttes frappent plusieurs blocs'],
+      'electric_field': ['Bolas na área causam +50% de dano', 'Balls inside deal +50% damage', 'Las bolas dentro causan +50% de daño', 'Les balles y infligent +50% de dégâts'],
+      'mud':            ['Blocos da área não descem no próximo turno', 'Area blocks don\'t descend next turn', 'Los bloques del área no bajan el próximo turno', 'Les blocs de la zone ne descendent pas au prochain tour'],
+      'embers':         ['Blocos vizinhos ficam em chamas', 'Nearby blocks catch fire', 'Los bloques vecinos arden', 'Les blocs voisins s\'enflamment'],
+      'blizzard':       ['Congela: não descem e recebem mais dano', 'Freezes: no descent and extra damage taken', 'Congela: no bajan y reciben más daño', 'Gèle : pas de descente et dégâts accrus'],
+      'hurricane':      ['A bola se divide em 3', 'The ball splits into 3', 'La bola se divide en 3', 'La balle se divise en 3'],
+      'thunderstorm':   ['Raios aleatórios caem por 2 turnos', 'Random bolts strike for 2 turns', 'Rayos aleatorios caen por 2 turnos', 'Des éclairs tombent pendant 2 tours'],
+      'sandstorm':      ['Estilhaços saem em 8 direções', 'Shards fly in 8 directions', 'Esquirlas salen en 8 direcciones', 'Des éclats partent dans 8 directions'],
+      'overload':       ['Explosão em cruz: linha + coluna', 'Cross explosion: row + column', 'Explosión en cruz: fila + columna', 'Explosion en croix : ligne + colonne'],
+      'chain_current':  ['O dano salta entre até 6 blocos vizinhos', 'Damage jumps across up to 6 neighbors', 'El daño salta entre hasta 6 bloques', 'Les dégâts sautent entre 6 blocs max'],
+      'flash':          ['A bola perfura tudo por 2 segundos', 'The ball pierces everything for 2 seconds', 'La bola perfora todo por 2 segundos', 'La balle transperce tout pendant 2 s'],
+      'thunder':        ['Atinge os 5 blocos com mais HP', 'Strikes the 5 highest-HP blocks', 'Golpea los 5 bloques con más HP', 'Frappe les 5 blocs avec le plus de PV'],
+      'magnetism':      ['Puxa as bolas para a linha mais baixa', 'Pulls balls toward the lowest row', 'Atrae las bolas a la fila más baja', 'Attire les balles vers la ligne la plus basse'],
+      'magma':          ['Lava fixa que queima quem desce sobre ela', 'Fixed lava that burns blocks landing on it', 'Lava fija que quema a quien baja sobre ella', 'Lave fixe qui brûle les blocs qui y descendent'],
+      'swamp':          ['Área que corrói os blocos por 3 turnos', 'Area that corrodes blocks for 3 turns', 'Área que corroe los bloques por 3 turnos', 'Zone qui corrode les blocs pendant 3 tours'],
+      'boulder':        ['Cria uma bola pesada temporária de dano alto', 'Spawns a temporary heavy high-damage ball', 'Crea una bola pesada temporal de daño alto', 'Crée une balle lourde temporaire à gros dégâts'],
+      'earthquake':     ['Dano em toda a linha mais baixa', 'Damages the entire lowest row', 'Daño en toda la fila más baja', 'Dégâts sur toute la ligne la plus basse'],
+      'fissure':        ['Corta 50% do HP dos blocos da coluna', 'Cuts 50% of the column blocks\' HP', 'Corta 50% del HP de la columna', 'Réduit de 50% les PV de la colonne'],
+    };
+    final t = map[id];
+    return t != null ? _t(t) : '';
+  }
+
+  // ── Rewarded (fim de partida) ─────────────────────────────────────────────
+  String doubleGoldAd(int amount) =>
+      '▶ ${_t(['Dobrar moedas', 'Double coins', 'Duplicar monedas', 'Doubler les pièces'])} (+$amount)';
 
   // ── Stats ─────────────────────────────────────────────────────────────────
   String balls(int n) => '${_t(['bolas', 'balls', 'bolas', 'balles'])}: $n';
@@ -95,9 +259,6 @@ class L10n {
       'balls':     ['Bolas iniciais','Starting Balls', 'Bolas iniciales','Balles initiales'],
       'power':     ['Força',         'Power',          'Fuerza',         'Force'],
       'crit':      ['Crítico',       'Critical',       'Crítico',        'Critique'],
-      'upg_fire':  ['Fogo+',         'Fire+',          'Fuego+',         'Feu+'],
-      'upg_water': ['Água+',         'Water+',         'Agua+',          'Eau+'],
-      'upg_wind':  ['Vento+',        'Wind+',          'Viento+',        'Vent+'],
       'bounce':    ['Ricochete',     'Bounce',         'Rebote',         'Rebond'],
       'speed':     ['Acelerar',      'Fast Forward',   'Acelerar',       'Accélérer'],
     };
@@ -112,9 +273,6 @@ class L10n {
       'balls':     ['Bolas no início de cada fase', 'Balls at the start of each stage', 'Bolas al inicio de cada etapa', 'Balles au début de chaque niveau'],
       'power':     ['Dano de cada acerto', 'Damage per hit', 'Daño por golpe', 'Dégâts par coup'],
       'crit':      ['Chance de causar dano dobrado', 'Chance to deal double damage', 'Probabilidad de daño doble', 'Chance d\'infliger double dégâts'],
-      'upg_fire':  ['Dano do Fogo contra Vento (vantagem)', 'Fire damage vs Wind (advantage)', 'Daño de Fuego contra Viento (ventaja)', 'Dégâts du Feu contre le Vent (avantage)'],
-      'upg_water': ['Dano da Água contra Vento (desvantagem)', 'Water damage vs Wind (disadvantage)', 'Daño de Agua contra Viento (desventaja)', 'Dégâts de l\'Eau contre le Vent (désavantage)'],
-      'upg_wind':  ['Chance do Vento ignorar desvantagem', 'Chance for Wind to ignore disadvantage', 'Probabilidad de que el Viento ignore la desventaja', 'Chance que le Vent ignore le désavantage'],
       'bounce':    ['Quiques extras mostrados na mira', 'Extra bounces shown on the aim line', 'Rebotes extra mostrados en la mira', 'Rebonds supplémentaires sur la visée'],
       'speed':     ['Botão ▶▶ no jogo: rodada em 2x', 'In-game ▶▶ button: round at 2x', 'Botón ▶▶ en el juego: ronda a 2x', 'Bouton ▶▶ en jeu : manche en 2x'],
     };
@@ -135,12 +293,6 @@ class L10n {
       case 'power':
         return '${(value ?? 1).toInt()}';
       case 'crit':
-        return pct(value ?? 0);
-      case 'upg_fire':
-        return pct(value ?? 1.5);
-      case 'upg_water':
-        return pct(value ?? 0.5);
-      case 'upg_wind':
         return pct(value ?? 0);
       case 'bounce':
         return '${(value ?? 0).toInt()}';
@@ -278,42 +430,119 @@ class L10n {
               'Splits the ball into 4 when hit',
               'Divide la bola en 4 al ser golpeada',
               'Divise la balle en 4 quand elle est touchée'])],
-    ['🌀', _t(['Elemento', 'Element', 'Elemento', 'Élément']),
-          _t(['Muda o elemento de todas as bolas',
-              'Changes the element of all balls',
-              'Cambia el elemento de todas las bolas',
-              'Change l\'élément de toutes les balles'])],
+    ['🌀', _t(['Bloco Elemental', 'Elemental Block', 'Bloque Elemental', 'Bloc Élémentaire']),
+          _t(['A bola ATRAVESSA e absorve o elemento; aguenta 3 passagens',
+              'The ball PASSES THROUGH and absorbs the element; lasts 3 passes',
+              'La bola lo ATRAVIESA y absorbe el elemento; dura 3 pases',
+              'La balle le TRAVERSE et absorbe l\'élément ; dure 3 passages'])],
+    ['🎁', _t(['Power-up', 'Power-up', 'Power-up', 'Power-up']),
+          _t(['Células azuis: ímã, portais, muralha, bola gigante e mais',
+              'Blue cells: magnet, portals, wall, giant ball and more',
+              'Celdas azules: imán, portales, muralla, bola gigante y más',
+              'Cases bleues : aimant, portails, muraille, balle géante et plus'])],
+    ['💣', _t(['Bomba-relógio', 'Time Bomb', 'Bomba de tiempo', 'Bombe à retardement']),
+          _t(['Conta 3 turnos e explode sozinha em área',
+              'Counts 3 turns and explodes on its own in an area',
+              'Cuenta 3 turnos y explota sola en área',
+              'Compte 3 tours puis explose en zone toute seule'])],
   ];
 
-  // Slide 3 – Elementos
-  String get tutSlide3Title => _t(['Sistema de Elementos', 'Element System', 'Sistema de Elementos', 'Système d\'Éléments']);
+  // Slide 3 – Elementos e Combinações
+  String get tutSlide3Title => _t(['Elementos & Combos', 'Elements & Combos', 'Elementos & Combos', 'Éléments & Combos']);
   String get tutSlide3Sub => _t([
-    'Escolha o elemento certo para causar\nmais dano e vencer mais rápido!',
-    'Choose the right element to deal\nmore damage and win faster!',
-    '¡Elige el elemento correcto para causar\nmás daño y ganar más rápido!',
-    'Choisissez le bon élément pour infliger\nplus de dégâts et gagner plus vite!',
+    'A bola começa neutra. Atravesse blocos\nelementais para ganhar poder!',
+    'Balls start neutral. Pass through\nelemental blocks to gain power!',
+    'La bola empieza neutra. ¡Atraviesa bloques\nelementales para ganar poder!',
+    'La balle commence neutre. Traversez des blocs\nélémentaires pour gagner du pouvoir!',
   ]);
   List<List<String>> get tutSlide3Items => [
-    ['🔥', _t(['Fogo → Vento', 'Fire → Wind', 'Fuego → Viento', 'Feu → Vent']),
-          _t(['Fogo é forte vs Vento e fraco vs Água',
-              'Fire is strong vs Wind and weak vs Water',
-              'Fuego es fuerte vs Viento y débil vs Agua',
-              'Le Feu est fort vs Vent et faible vs Eau'])],
-    ['💧', _t(['Água → Fogo', 'Water → Fire', 'Agua → Fuego', 'Eau → Feu']),
-          _t(['Água é forte vs Fogo e fraca vs Vento',
-              'Water is strong vs Fire and weak vs Wind',
-              'Agua es fuerte vs Fuego y débil vs Viento',
-              'L\'Eau est forte vs Feu et faible vs Vent'])],
-    ['🌪', _t(['Vento → Água', 'Wind → Water', 'Viento → Agua', 'Vent → Eau']),
-          _t(['Vento é forte vs Água e fraco vs Fogo',
-              'Wind is strong vs Water and weak vs Fire',
-              'Viento es fuerte vs Agua y débil vs Fuego',
-              'Le Vent est fort vs Eau et faible vs Feu'])],
-    ['⚪', _t(['Neutro', 'Neutral', 'Neutro', 'Neutre']),
-          _t(['Sem bônus ou penalidade — útil em qualquer fase',
-              'No bonus or penalty — useful in any stage',
-              'Sin bono ni penalización — útil en cualquier fase',
-              'Aucun bonus ni pénalité — utile à tout niveau'])],
+    ['🔮', _t(['Absorção', 'Absorption', 'Absorción', 'Absorption']),
+          _t(['Bola neutra que atravessa um bloco elemental ganha a cor dele',
+              'A neutral ball passing through an elemental block takes its color',
+              'La bola neutra que atraviesa un bloque elemental toma su color',
+              'Une balle neutre qui traverse un bloc élémentaire prend sa couleur'])],
+    ['💥', _t(['Combinação', 'Combo', 'Combinación', 'Combo']),
+          _t(['Bola COM elemento × outro bloco elemental dispara um efeito',
+              'An elemental ball × another elemental block triggers an effect',
+              'Bola CON elemento × otro bloque elemental dispara un efecto',
+              'Balle élémentaire × autre bloc élémentaire déclenche un effet'])],
+    ['🔁', _t(['A ordem importa', 'Order matters', 'El orden importa', 'L\'ordre compte']),
+          _t(['Fogo×Água vira Ácido; Água×Fogo vira Vapor — 25 combos',
+              'Fire×Water makes Acid; Water×Fire makes Steam — 25 combos',
+              'Fuego×Agua da Ácido; Agua×Fuego da Vapor — 25 combos',
+              'Feu×Eau donne Acide ; Eau×Feu donne Vapeur — 25 combos'])],
+    ['📖', _t(['Codex', 'Codex', 'Códice', 'Codex']),
+          _t(['Cada combinação nova descoberta fica registrada no Codex',
+              'Every newly discovered combo is recorded in the Codex',
+              'Cada combinación nueva queda registrada en el Códice',
+              'Chaque combo découvert est enregistré dans le Codex'])],
+  ];
+
+  // Slide – Status e Zonas
+  String get tutSlideStatusTitle => _t(['Status & Zonas', 'Status & Zones', 'Estados & Zonas', 'Statuts & Zones']);
+  String get tutSlideStatusSub => _t([
+    'Combinações deixam marcas nos blocos\nque duram vários turnos!',
+    'Combos leave marks on blocks\nthat last several turns!',
+    '¡Las combinaciones dejan marcas en los bloques\nque duran varios turnos!',
+    'Les combos laissent des marques sur les blocs\nqui durent plusieurs tours!',
+  ]);
+  List<List<String>> get tutSlideStatusItems => [
+    ['🔥', _t(['Em chamas & ácido', 'Burning & acid', 'En llamas & ácido', 'En feu & acide']),
+          _t(['O bloco perde HP a cada turno até o efeito passar',
+              'The block loses HP each turn until the effect ends',
+              'El bloque pierde HP cada turno hasta que pase el efecto',
+              'Le bloc perd des PV à chaque tour jusqu\'à la fin de l\'effet'])],
+    ['❄', _t(['Congelado & lama', 'Frozen & mud', 'Congelado & lodo', 'Gelé & boue']),
+          _t(['O bloco não desce e segura a coluna inteira acima dele',
+              'The block doesn\'t descend and holds the whole column above',
+              'El bloque no baja y sostiene toda la columna de arriba',
+              'Le bloc ne descend pas et retient toute la colonne au-dessus'])],
+    ['💨', _t(['Vapor', 'Steam', 'Vapor', 'Vapeur']),
+          _t(['Blocos amolecidos recebem dano dobrado por 1 turno',
+              'Softened blocks take double damage for 1 turn',
+              'Los bloques ablandados reciben daño doble por 1 turno',
+              'Les blocs ramollis subissent le double de dégâts 1 tour'])],
+    ['🟧', _t(['Zonas', 'Zones', 'Zonas', 'Zones']),
+          _t(['Magma, pântano e campo elétrico agem no tabuleiro por turnos',
+              'Magma, swamp and electric field act on the board for turns',
+              'Magma, pantano y campo eléctrico actúan en el tablero por turnos',
+              'Magma, marais et champ électrique agissent pendant des tours'])],
+  ];
+
+  // Slide – Especiais de elemento
+  String get tutSlideSpecialsTitle => _t(['Especiais', 'Specials', 'Especiales', 'Spéciaux']);
+  String get tutSlideSpecialsSub => _t([
+    'Cada elemento tem um poder. Compre e evolua\nna tela de Upgrades e solte pelo botão!',
+    'Each element has a power. Buy and level it up\nin Upgrades, then unleash it with the button!',
+    'Cada elemento tiene un poder. Cómpralo y mejóralo\nen Mejoras y suéltalo con el botón!',
+    'Chaque élément a un pouvoir. Achetez et améliorez-le\ndans Améliorations, puis libérez-le avec le bouton!',
+  ]);
+  List<List<String>> get tutSlideSpecialsItems => [
+    ['⚡', _t(['Botão do especial', 'Special button', 'Botón del especial', 'Bouton du spécial']),
+          _t(['Fica no canto inferior direito. Toque nos ícones ao lado para ESCOLHER qual poder usar',
+              'Sits at the bottom right. Tap the icons beside it to CHOOSE which power to use',
+              'Está abajo a la derecha. Toca los iconos de al lado para ELEGIR qué poder usar',
+              'En bas à droite. Touchez les icônes à côté pour CHOISIR le pouvoir à utiliser'])],
+    ['🔵', _t(['100 acertos', '100 hits', '100 golpes', '100 coups']),
+          _t(['A cada 100 acertos de bola nos blocos, o anel do botão enche',
+              'Every 100 ball hits on blocks fills the button\'s ring',
+              'Cada 100 golpes de bola en los bloques llena el anillo del botón',
+              'Tous les 100 coups de balle sur les blocs remplissent l\'anneau'])],
+    ['👆', _t(['Ativar', 'Activate', 'Activar', 'Activer']),
+          _t(['Com o anel cheio, o botão acende: toque para soltar o poder escolhido',
+              'When the ring is full the button lights up: tap to unleash the chosen power',
+              'Con el anillo lleno el botón se enciende: toca para soltar el poder elegido',
+              'Anneau plein, le bouton s\'allume : touchez pour libérer le pouvoir choisi'])],
+    ['🌊', _t(['Maré', 'Tide', 'Marea', 'Marée']),
+          _t(['Onda circular que atinge tudo e empurra 1 linha para trás; precisa recarregar',
+              'A circular wave that hits everything and pushes 1 row back; needs to recharge',
+              'Ola circular que golpea todo y empuja 1 fila atrás; necesita recargar',
+              'Vague circulaire qui frappe tout et repousse d\'une ligne ; doit se recharger'])],
+    ['▶', _t(['Anúncio', 'Ad', 'Anuncio', 'Annonce']),
+          _t(['Uma vez por partida: assista um anúncio e ative na hora',
+              'Once per run: watch an ad and activate instantly',
+              'Una vez por partida: mira un anuncio y actívalo al instante',
+              'Une fois par partie : regardez une annonce et activez direct'])],
   ];
 
   // Slide 4 – Boss
@@ -336,10 +565,10 @@ class L10n {
               '8 bloques pequeños protegen al jefe a su alrededor',
               '8 petits blocs protègent le boss autour de lui'])],
     ['⚡', _t(['Dica', 'Tip', 'Consejo', 'Conseil']),
-          _t(['Use upgrades de elemento para maximizar o dano',
-              'Use element upgrades to maximize damage',
-              'Usa mejoras de elemento para maximizar el daño',
-              'Utilisez les améliorations d\'élément pour maximiser les dégâts'])],
+          _t(['Guarde o medidor do especial e as combinações para o boss',
+              'Save your special meter and combos for the boss',
+              'Guarda el medidor del especial y los combos para el jefe',
+              'Gardez la jauge du spécial et les combos pour le boss'])],
   ];
 
   // Slide 5 – Upgrades
@@ -366,11 +595,11 @@ class L10n {
               'The aiming line shows extra bounces off walls',
               'La línea de mira muestra rebotes extra en las paredes',
               'La ligne de visée affiche des rebonds supplémentaires'])],
-    ['🔥', _t(['Bônus Elemental', 'Elemental Bonus', 'Bono Elemental', 'Bonus Élémentaire']),
-          _t(['Amplifica vantagens dos elementos (Fogo+, Água+, Vento+)',
-              'Amplifies element advantages (Fire+, Water+, Wind+)',
-              'Amplifica las ventajas de elementos (Fuego+, Agua+, Viento+)',
-              'Amplifie les avantages des éléments (Feu+, Eau+, Vent+)'])],
+    ['🌀', _t(['Especiais', 'Specials', 'Especiales', 'Spéciaux']),
+          _t(['O dano sobe a cada nível; o custo cresce rápido — invista cedo',
+              'Damage rises each level; cost grows fast — invest early',
+              'El daño sube por nivel; el costo crece rápido — invierte pronto',
+              'Les dégâts montent par niveau ; le coût grimpe vite — investissez tôt'])],
   ];
 
   // ── Legend ────────────────────────────────────────────────────────────────
@@ -574,6 +803,18 @@ class L10n {
     MissionType.advantageHits => _t(["Acerte $n vezes com vantagem elemental", "Land $n hits with elemental advantage", "Acierta $n golpes con ventaja elemental", "Réussissez $n coups avec avantage élémentaire"]),
     MissionType.critHits => _t(["Acerte $n golpes críticos", "Land $n critical hits", "Acierta $n golpes críticos", "Réussissez $n coups critiques"]),
     MissionType.playRounds => _t(["Jogue $n rodadas", "Play $n rounds", "Juega $n rondas", "Jouez $n manches"]),
+    MissionType.useSpecials => n == 1
+        ? _t(["Use o poder especial 1 vez", "Use your special power once", "Usa el poder especial 1 vez", "Utilisez votre pouvoir spécial 1 fois"])
+        : _t(["Use o poder especial $n vezes", "Use your special power $n times", "Usa el poder especial $n veces", "Utilisez votre pouvoir spécial $n fois"]),
+    MissionType.triggerCombos => _t(["Dispare $n combinações elementais", "Trigger $n elemental combos", "Dispara $n combinaciones elementales", "Déclenchez $n combos élémentaires"]),
+    MissionType.absorbElements => _t(["Absorva o elemento de $n blocos elementais", "Absorb the element of $n elemental blocks", "Absorbe el elemento de $n bloques elementales", "Absorbez l'élément de $n blocs élémentaires"]),
+    MissionType.collectPowerUps => n == 1
+        ? _t(["Colete 1 power-up", "Collect 1 power-up", "Recoge 1 power-up", "Ramassez 1 power-up"])
+        : _t(["Colete $n power-ups", "Collect $n power-ups", "Recoge $n power-ups", "Ramassez $n power-ups"]),
+    MissionType.statusBlocks => _t(["Aplique status em $n blocos (chamas, gelo, ácido...)", "Apply status to $n blocks (burn, freeze, acid...)", "Aplica estados a $n bloques (llamas, hielo, ácido...)", "Appliquez un statut à $n blocs (feu, gel, acide...)"]),
+    MissionType.discoverCombos => n == 1
+        ? _t(["Descubra 1 combinação nova no Codex", "Discover 1 new combo in the Codex", "Descubre 1 combinación nueva en el Códice", "Découvrez 1 nouveau combo dans le Codex"])
+        : _t(["Descubra $n combinações novas no Codex", "Discover $n new combos in the Codex", "Descubre $n combinaciones nuevas en el Códice", "Découvrez $n nouveaux combos dans le Codex"]),
   };
   String missionDifficulty(MissionDifficulty d) => switch (d) {
     MissionDifficulty.easy => _t(["FÁCIL", "EASY", "FÁCIL", "FACILE"]),

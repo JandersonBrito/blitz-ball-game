@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../services/purchase_service.dart';
 import '../game/managers/game_state.dart';
 import '../services/settings_service.dart';
-import '../models/element.dart';
 
 class HudOverlay extends StatelessWidget {
   final VoidCallback onPause;
@@ -17,12 +16,17 @@ class HudOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch<GameState>();
     final l = context.watch<SettingsService>().l10n;
-    final elInfo = elementDataMap[state.ballElement]!;
 
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        child: Row(
+        child: _mainRow(context, state, l),
+      ),
+    );
+  }
+
+  Widget _mainRow(BuildContext context, GameState state, dynamic l) {
+    return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             // left group: stage + wave
@@ -71,16 +75,6 @@ class HudOverlay extends StatelessWidget {
                       fontFamily: 'monospace')),
             const SizedBox(width: 8),
 
-            // element — flexible so long names shrink
-            Flexible(
-              child: Text(
-                '${elInfo.icon} ${l.elemName(state.ballElement)}',
-                style: TextStyle(color: elInfo.ballColor, fontSize: 11),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-
             // 2x — só aparece depois de desbloqueado na loja
             if (state.speedUnlocked) ...[
               GestureDetector(
@@ -124,9 +118,7 @@ class HudOverlay extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
+        );
   }
 }
 

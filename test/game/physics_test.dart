@@ -199,35 +199,26 @@ void main() {
   });
 
   group('DamageModel', () {
-    test('segue as regras de GameState.calcElemMult', () {
-      final gs = GameState()
-        ..upgrades['power'] = 5
-        ..upgrades['upg_fire'] = 3
-        ..upgrades['upg_water'] = 2;
+    test('dano base vem do upgrade de força', () {
+      final gs = GameState()..upgrades['power'] = 5;
       final model = DamageModel(Random(1))..refresh(gs);
       expect(model.base, 8);
-      for (final atk in ElementType.values) {
-        for (final def in ElementType.values) {
-          expect(model.roll(atk.index, def.index),
-              (8 * gs.calcElemMult(atk, def)).ceil(),
-              reason: '$atk x $def');
-        }
-      }
+      expect(model.critChance, 0);
+      expect(model.roll(), 8);
     });
 
-    test('vento ignora a desvantagem na proporção do upgrade', () {
-      // Base 8: 4 de dano sem o bypass (x0.5), 8 com ele (x1.0).
+    test('crítico dobra o dano na proporção da chance', () {
       final gs = GameState()
-        ..upgrades['upg_wind'] = 5 // 75%
-        ..upgrades['power'] = 5;
+        ..upgrades['power'] = 5
+        ..upgrades['crit'] = 5; // 50%
       final model = DamageModel(Random(3))..refresh(gs);
-      var bypassed = 0;
+      var crits = 0;
       for (var i = 0; i < 4000; i++) {
-        if (model.roll(ElementType.wind.index, ElementType.fire.index) == 8) {
-          bypassed++;
-        }
+        final d = model.roll();
+        expect(d == 8 || d == 16, isTrue);
+        if (d == 16) crits++;
       }
-      expect(bypassed / 4000, closeTo(0.75, 0.03));
+      expect(crits / 4000, closeTo(0.5, 0.03));
     });
   });
 }

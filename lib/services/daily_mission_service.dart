@@ -135,14 +135,10 @@ class DailyMissionService extends ChangeNotifier {
   void _generate(int seed) {
     final gs = _gameState;
     final stage = gs?.stage ?? 1;
-    final hasCrit = (gs?.upgrades['crit'] ?? 0) > 0;
     // Mesmo dia, mesmos tipos: reinstalar o jogo não troca as missões por
     // outras mais fáceis.
     final rng = Random(seed);
-    final pool = MissionType.values
-        .where((t) => t != MissionType.critHits || hasCrit)
-        .toList()
-      ..shuffle(rng);
+    final pool = poolFor(gs)..shuffle(rng);
     final base = _baseReward(stage);
     _missions = [
       for (var i = 0; i < missionsPerDay; i++)
@@ -156,9 +152,44 @@ class DailyMissionService extends ChangeNotifier {
     _bonusReward = base * 2;
   }
 
+  /// Tipos que podem ser sorteados hoje, conforme o que o jogador já tem:
+  /// crítico só com o upgrade, poder especial só com algum especial comprado,
+  /// descoberta só enquanto sobrarem combinações no Codex.
+  @visibleForTesting
+  static List<MissionType> poolFor(GameState? gs) {
+    final hasCrit = (gs?.upgrades['crit'] ?? 0) > 0;
+    final hasSpecial = gs?.ownsAnySpecial ?? false;
+    // Precisa sobrar mais que a meta máxima de descoberta para ser justa.
+    final canDiscover = gs != null &&
+        comboTotal - gs.discoveredComboCount >=
+            targetFor(MissionType.discoverCombos, MissionDifficulty.hard, 1);
+    return [
+      for (final t in MissionType.values)
+        if (t == MissionType.advantageHits)
+          // O triângulo de vantagem saiu do jogo; o tipo fica no enum (a
+          // ordem é salva em disco), mas não é mais sorteado.
+          ...const <MissionType>[]
+        else if (t == MissionType.critHits && !hasCrit)
+          ...const <MissionType>[]
+        else if (t == MissionType.useSpecials && !hasSpecial)
+          ...const <MissionType>[]
+        else if (t == MissionType.discoverCombos && !canDiscover)
+          ...const <MissionType>[]
+        else
+          t
+    ];
+  }
+
+  /// Total de combinações do Codex (bola × bloco).
+  static const int comboTotal = 25;
+
   static int _baseReward(int stage) => _round5(min(400, 30 + stage * 4));
 
   static int _round5(num v) => max(5, (v / 5).round() * 5);
+
+  @visibleForTesting
+  static int targetFor(MissionType t, MissionDifficulty d, int stage) =>
+      _target(t, d, stage);
 
   static int _target(MissionType t, MissionDifficulty d, int stage) {
     final i = d.index;
@@ -179,6 +210,18 @@ class DailyMissionService extends ChangeNotifier {
         return const [15, 40, 90][i];
       case MissionType.playRounds:
         return const [10, 25, 50][i];
+      case MissionType.useSpecials:
+        return const [1, 2, 4][i];
+      case MissionType.triggerCombos:
+        return const [2, 5, 12][i];
+      case MissionType.absorbElements:
+        return const [5, 12, 25][i];
+      case MissionType.collectPowerUps:
+        return const [1, 3, 5][i];
+      case MissionType.statusBlocks:
+        return const [8, 20, 50][i];
+      case MissionType.discoverCombos:
+        return const [1, 2, 3][i];
     }
   }
 

@@ -37,6 +37,22 @@ class BallPool {
   /// Quantas bolas este objeto representa (agrupamento acima do limite).
   late Int32List weight;
 
+  /// Serial do bloco que a bola está atravessando (0 = nenhum): blocos
+  /// especiais e blocos perfurados gastam 1 interação por passagem, não por
+  /// substep.
+  late Int32List lastSpecial;
+
+  /// Raio de colisão (px). Padrão 5; a Bola Gigante dobra.
+  late Float32List radius;
+
+  /// Perfuração por tempo (s, combo Relâmpago) e por contagem de blocos
+  /// (power-up Perfurante). Ativa se qualquer um > 0.
+  late Float32List pierceTime;
+  late Int16List pierceLeft;
+
+  /// Tempo até a bola poder usar um portal de novo (evita ida-e-volta).
+  late Float32List portalCd;
+
   late Float32List trailX, trailY;
 
   void _allocate(int capacity) {
@@ -73,6 +89,21 @@ class BallPool {
     final w = Int32List(capacity);
     if (old) w.setRange(0, n, weight);
     weight = w;
+    final ls = Int32List(capacity);
+    if (old) ls.setRange(0, n, lastSpecial);
+    lastSpecial = ls;
+    final rad = Float32List(capacity);
+    if (old) rad.setRange(0, n, radius);
+    radius = rad;
+    final pt = Float32List(capacity);
+    if (old) pt.setRange(0, n, pierceTime);
+    pierceTime = pt;
+    final pl = Int16List(capacity);
+    if (old) pl.setRange(0, n, pierceLeft);
+    pierceLeft = pl;
+    final pc = Float32List(capacity);
+    if (old) pc.setRange(0, n, portalCd);
+    portalCd = pc;
     final tx = Float32List(capacity * trailCapacity);
     final ty = Float32List(capacity * trailCapacity);
     if (old) {
@@ -84,7 +115,8 @@ class BallPool {
     _capacity = capacity;
   }
 
-  int spawn(double x0, double y0, double vx0, double vy0, int el, int w) {
+  int spawn(double x0, double y0, double vx0, double vy0, int el, int w,
+      {double r = 5.0}) {
     if (count == _capacity) _allocate(_capacity * 2);
     final i = count++;
     x[i] = x0;
@@ -97,6 +129,11 @@ class BallPool {
     state[i] = flying;
     element[i] = el;
     weight[i] = w;
+    lastSpecial[i] = 0;
+    radius[i] = r;
+    pierceTime[i] = 0;
+    pierceLeft[i] = 0;
+    portalCd[i] = 0;
     trailCount[i] = 0;
     trailHead[i] = 0;
     flyingCount++;
@@ -120,12 +157,6 @@ class BallPool {
     cy[i] = controlY;
     t[i] = 0;
     trailCount[i] = 0;
-  }
-
-  void setAllElements(int el) {
-    for (var i = 0; i < count; i++) {
-      element[i] = el;
-    }
   }
 
   void pushTrail(int i) {
@@ -215,12 +246,6 @@ class ShotQueue {
     _head = (_head + 1) % _capacity;
     length--;
     return true;
-  }
-
-  void setAllElements(int el) {
-    for (var k = 0; k < length; k++) {
-      _el[(_head + k) % _capacity] = el;
-    }
   }
 
   /// Soma dos pesos na fila (quantas bolas ainda vão sair).

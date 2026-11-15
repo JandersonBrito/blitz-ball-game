@@ -22,24 +22,44 @@ abstract final class Spr {
   static const bonus = 13;
   static const triple = 14;
 
-  /// Grupos por elemento: +0 fogo, +1 água, +2 vento.
-  static const elemPower = 15;
-  static const iconSmall = 18;
-  static const iconLarge = 21;
+  /// Grupos por elemento: +0 fogo, +1 água, +2 vento, +3 raio, +4 terra.
+  static const special = 15;
+  static const iconSmall = 20;
+  static const iconLarge = 25;
 
-  static const bossLabel = 24;
-  static const ball = 25;
-  static const ballGlow = 26;
-  static const prismRing = 27;
-  static const particle = 28;
-  static const statusBadge = 29;
+  static const bossLabel = 30;
+  static const ball = 31;
+  static const ballGlow = 32;
+  static const prismRing = 33;
+  static const particle = 34;
+
+  /// Selos de status, um por forma: chamas, ácido, congelado, amolecido, preso.
+  static const statusBurn = 35;
+  static const statusAcid = 36;
+  static const statusFrozen = 37;
+  static const statusSoftened = 38;
+  static const statusStuck = 39;
+
+  /// Power-ups: fundo comum + ícone por tipo (ordem de [PowerUpKind]).
+  static const powerup = 40;
+  static const powerupIcon = 41; // 8 ícones: 41–48
+  static const bomb = 49;
 
   /// '0'..'9' = glyph0..glyph0 + 9.
-  static const glyph0 = 30;
-  static const glyphPlus = 40;
-  static const glyphX = 41;
-  static const glyphDown = 42;
-  static const count = 43;
+  static const glyph0 = 50;
+  static const glyphPlus = 60;
+  static const glyphX = 61;
+  static const glyphDown = 62;
+
+  /// Chama (gota afilada, branca) da linha de fogo.
+  static const fireFlame = 63;
+
+  /// Lâmina de vento (lua crescente, branca) da Rajada.
+  static const windBlade = 64;
+
+  /// Trecho de raio (barra arredondada branca) da Descarga.
+  static const boltSeg = 65;
+  static const count = 66;
 
   /// Posição do elemento nos grupos por elemento; -1 para neutro.
   static int elementOffset(ElementType e) => e.index - 1;
@@ -181,15 +201,18 @@ class SpriteAtlas {
       c.drawCircle(const Offset(b / 2 + 6, b / 2), 3, fill);
     });
 
-    const elemental = [ElementType.fire, ElementType.water, ElementType.wind];
+    const elemental = kCombatElements;
     for (var i = 0; i < elemental.length; i++) {
       final data = elementDataMap[elemental[i]]!;
       final big = text(data.icon, 13);
-      defs[Spr.elemPower + i] = _Def(b, b, (c) {
-        c.drawRRect(
-            cell, Paint()..color = elementDataMap[ElementType.neutral]!.blockBg);
+      defs[Spr.special + i] = _Def(b, b, (c) {
+        // Bloco especial (atravessável): fundo escuro translúcido e borda
+        // dupla na cor do elemento, para não parecer sólido.
+        c.drawRRect(cell, Paint()..color = const Color(0xCC14141f));
         c.drawRRect(cell, stroke(1.5, data.blockBorder));
-        centered(c, big, b / 2, b / 2);
+        c.drawRRect(inset(b - 6, b - 6, 4).shift(const Offset(3, 3)),
+            stroke(1, data.ballColor.withValues(alpha: 0.7)));
+        centered(c, big, b / 2, b / 2 - 3);
       });
       final small = text(data.icon, 10);
       defs[Spr.iconSmall + i] =
@@ -250,10 +273,88 @@ class SpriteAtlas {
                 Color(0xFFFFFFFF),
                 Color(0x00FFFFFF),
               ])));
-    defs[Spr.statusBadge] = _Def(7, 7, (c) {
+    // Power-ups: célula comum (fundo petróleo, borda clara tracejada) e um
+    // ícone por tipo, na ordem de PowerUpKind.
+    defs[Spr.powerup] = _Def(b, b, (c) {
+      c.drawRRect(cell, Paint()..color = const Color(0xFF18283a));
+      c.drawRRect(cell, stroke(1.5, const Color(0xFF9BD1FF)));
+    });
+    const powerupIcons = ['»', '◎', '∞', '●', '▄', '+', '2x', 'U'];
+    for (var k = 0; k < powerupIcons.length; k++) {
+      final tp = text(powerupIcons[k], 13);
+      defs[Spr.powerupIcon + k] =
+          _Def(tp.width, tp.height, (c) => tp.paint(c, Offset.zero));
+    }
+    final bombTp = text('💣', 13);
+    defs[Spr.bomb] = _Def(b, b, (c) {
+      c.drawRRect(cell, Paint()..color = const Color(0xFF3a1414));
+      c.drawRRect(cell, stroke(1.5, const Color(0xFFFF7043)));
+      centered(c, bombTp, b / 2, b / 2 - 4);
+    });
+
+    // Chama da linha de fogo: gota afilada 14×18, branca (cor vem do lote).
+    defs[Spr.fireFlame] = _Def(14, 18, (c) {
+      final flame = Path()
+        ..moveTo(7, 0)
+        ..cubicTo(8, 5, 13, 8, 13, 13)
+        ..cubicTo(13, 16.5, 10.3, 18, 7, 18)
+        ..cubicTo(3.7, 18, 1, 16.5, 1, 13)
+        ..cubicTo(1, 9, 4.5, 8, 5.5, 3.5)
+        ..cubicTo(5.9, 2, 6.4, 1, 7, 0)
+        ..close();
+      c.drawPath(flame, fill);
+    });
+
+    // Lâmina de vento: lua crescente 24×24, branca (cor vem do lote).
+    defs[Spr.windBlade] = _Def(24, 24, (c) {
+      final outer = Path()
+        ..addOval(Rect.fromCircle(center: const Offset(12, 12), radius: 11));
+      final cut = Path()
+        ..addOval(Rect.fromCircle(center: const Offset(16, 9), radius: 9.5));
+      c.drawPath(Path.combine(PathOperation.difference, outer, cut), fill);
+    });
+
+    // Trecho de raio: barra 28×8 de pontas redondas, branca.
+    defs[Spr.boltSeg] = _Def(
+        28,
+        8,
+        (c) => c.drawLine(const Offset(4, 4), const Offset(24, 4),
+            stroke(7)..strokeCap = StrokeCap.round));
+
+    // Selos de status (7×7, brancos: a cor vem do lote). Formas distintas
+    // para dar para diferenciar mesmo com daltonismo.
+    final badgeOutline = stroke(1, const Color(0x99000000));
+    defs[Spr.statusBurn] = _Def(7, 7, (c) {
+      final flame = Path()
+        ..moveTo(3.5, 0.5)
+        ..lineTo(6.5, 6.5)
+        ..lineTo(0.5, 6.5)
+        ..close();
+      c.drawPath(flame, fill);
+      c.drawPath(flame, badgeOutline);
+    });
+    defs[Spr.statusAcid] = _Def(7, 7, (c) {
       c.drawCircle(const Offset(3.5, 3.5), 3, fill);
-      c.drawCircle(
-          const Offset(3.5, 3.5), 3, stroke(1, const Color(0x99000000)));
+      c.drawCircle(const Offset(3.5, 3.5), 3, badgeOutline);
+    });
+    defs[Spr.statusFrozen] = _Def(7, 7, (c) {
+      final diamond = Path()
+        ..moveTo(3.5, 0.2)
+        ..lineTo(6.8, 3.5)
+        ..lineTo(3.5, 6.8)
+        ..lineTo(0.2, 3.5)
+        ..close();
+      c.drawPath(diamond, fill);
+      c.drawPath(diamond, badgeOutline);
+    });
+    defs[Spr.statusSoftened] = _Def(7, 7, (c) {
+      final wave = stroke(1.6);
+      c.drawLine(const Offset(0.5, 2), const Offset(6.5, 2), wave);
+      c.drawLine(const Offset(0.5, 5), const Offset(6.5, 5), wave);
+    });
+    defs[Spr.statusStuck] = _Def(7, 7, (c) {
+      c.drawRect(const Rect.fromLTWH(0.8, 0.8, 5.4, 5.4), fill);
+      c.drawRect(const Rect.fromLTWH(0.8, 0.8, 5.4, 5.4), badgeOutline);
     });
 
     final advance = Float32List(_glyphChars.length);

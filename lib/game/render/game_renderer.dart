@@ -6,6 +6,7 @@ import '../../models/ball_skin.dart';
 import '../../models/element.dart';
 import '../ballz_flame_game.dart';
 import '../components/block_component.dart';
+import '../config/element_config.dart';
 import '../physics/ball_pool.dart';
 import 'atlas_batch.dart';
 import 'sprite_atlas.dart';
@@ -104,9 +105,40 @@ class GameRenderer {
     return recorder.endRecording();
   }
 
+  /// Cor de fundo e ícone (sprite de elemento) de cada tipo de zona.
+  static const List<int> _zoneColors = [
+    0x66FF5722, // magma
+    0x5567493B, // pântano
+    0x4479B8FF, // campo eletrificado
+    0x44CE93D8, // tempestade elétrica
+    0x66FF8C42, // tornado de fogo
+  ];
+  static const List<ElementType> _zoneIcons = [
+    ElementType.fire,
+    ElementType.earth,
+    ElementType.lightning,
+    ElementType.lightning,
+    ElementType.fire,
+  ];
+
   // ── Blocos ───────────────────────────────────────────────────────────────
   void _emitBlocks(BallzFlameGame g) {
     final batch = _blocks..begin();
+
+    // Zonas persistentes, desenhadas por baixo dos blocos.
+    final z = g.zones;
+    for (var i = 0; i < z.count; i++) {
+      final kindIdx = z.kind[i] - 1;
+      final scale = (z.halfW[i] * 2) / BallzFlameGame.blockSize;
+      batch.addCentered(
+          Spr.blockFill, z.x[i], z.y[i], scale, _zoneColors[kindIdx]);
+      batch.addCentered(Spr.iconSmall + Spr.elementOffset(_zoneIcons[kindIdx]),
+          z.x[i], z.y[i], 1, _white70);
+      // Turnos restantes no canto da zona.
+      _number(batch, z.turns[i], z.x[i] + z.halfW[i] - 6,
+          z.y[i] - z.halfH[i] + 7, 9, _white70);
+    }
+
     final blocks = g.blocks;
     final glow = g.profile.glow;
     final pulse = 0.5 + 0.5 * sin(g.animTime * 1000 / 300);
@@ -121,8 +153,22 @@ class GameRenderer {
           batch.add(Spr.bonus, x, y);
         case BlockType.triple:
           batch.add(Spr.triple, x, y);
-        case BlockType.elemPower:
-          _elemPower(batch, b, x, y);
+        case BlockType.special:
+          _special(batch, b, x, y);
+        case BlockType.powerup:
+          batch.add(Spr.powerup, x, y);
+          if (b.powerUp != null) {
+            batch.addCentered(
+                Spr.powerupIcon + b.powerUp!.index,
+                x + BallzFlameGame.blockSize / 2,
+                y + BallzFlameGame.blockSize / 2,
+                1,
+                0xFF9BD1FF);
+          }
+        case BlockType.bomb:
+          batch.add(Spr.bomb, x, y);
+          _number(batch, b.charges, x + BallzFlameGame.blockSize / 2,
+              y + BallzFlameGame.blockSize - 9, 9, 0xFFFF9A76);
         case BlockType.boss:
           _boss(batch, b, x, y, glow, pulse);
         case BlockType.normal || BlockType.gold:
@@ -135,7 +181,8 @@ class GameRenderer {
   void _numbered(AtlasBatch batch, BlockComponent b, double x, double y) {
     final el = b.element.index;
     final gold = b.type == BlockType.gold;
-    batch.add(Spr.blockFill, x, y, 1, _withAlpha(_bg[el], 0.45 + 0.55 * b.hpRatio));
+    batch.add(
+        Spr.blockFill, x, y, 1, _withAlpha(_bg[el], 0.45 + 0.55 * b.hpRatio));
     batch.add(gold ? Spr.blockBorderGold : Spr.blockBorder, x, y, 1,
         gold ? _gold : _border[el]);
     const half = BallzFlameGame.blockSize / 2;
@@ -153,14 +200,19 @@ class GameRenderer {
     }
   }
 
-  void _elemPower(AtlasBatch batch, BlockComponent b, double x, double y) {
-    final e = b.elemPowerEl;
-    if (e == null || e == ElementType.neutral) {
-      batch.add(Spr.blockFill, x, y, 1, _bg[ElementType.neutral.index]);
-      batch.add(Spr.blockBorder, x, y, 1, _border[b.element.index]);
-      return;
+  /// Bloco especial: sprite do elemento + pips com as cargas restantes.
+  void _special(AtlasBatch batch, BlockComponent b, double x, double y) {
+    batch.add(Spr.special + Spr.elementOffset(b.element), x, y);
+    final n = b.charges;
+    if (n <= 0) return;
+    const h = BallzFlameGame.blockSize;
+    final spacing = min(7.0, (h - 12) / n);
+    var dx = (h - spacing * (n - 1)) / 2;
+    final color = _ball[b.element.index];
+    for (var k = 0; k < n; k++) {
+      batch.addCentered(Spr.dot, x + dx, y + h - 8, 0.8, color);
+      dx += spacing;
     }
-    batch.add(Spr.elemPower + Spr.elementOffset(e), x, y);
   }
 
   void _boss(AtlasBatch batch, BlockComponent b, double x, double y, bool glow,
@@ -172,7 +224,8 @@ class GameRenderer {
     batch.add(Spr.bossFill, x, y, 1, bg);
     batch.add(Spr.bossBorder, x, y, 1, _gold);
     if (glow) {
-      batch.add(Spr.bossGlow, x - 4, y - 4, 1, _withAlpha(bg, 0.2 + pulse * 0.15));
+      batch.add(
+          Spr.bossGlow, x - 4, y - 4, 1, _withAlpha(bg, 0.2 + pulse * 0.15));
     }
     batch.add(Spr.hpBar, x + 8, y + h - 10, 1, 0x66000000);
     final bar = ratio > 0.5
@@ -189,8 +242,17 @@ class GameRenderer {
     batch.addCentered(Spr.bossLabel, x + w / 2,
         y + (elemental ? h / 2 + 2 : h / 2 - 8), 1, _white70);
     final hp = b.hp;
-    _number(batch, hp, x + w / 2, y + (elemental ? h / 2 + 16 : h / 2 + 6),
-        hp > 9999 ? 9 : hp > 999 ? 11 : 13, _text[el]);
+    _number(
+        batch,
+        hp,
+        x + w / 2,
+        y + (elemental ? h / 2 + 16 : h / 2 + 6),
+        hp > 9999
+            ? 9
+            : hp > 999
+                ? 11
+                : 13,
+        _text[el]);
   }
 
   void _wall(AtlasBatch batch, BlockComponent b, double x, double y) {
@@ -201,7 +263,8 @@ class GameRenderer {
     batch.add(Spr.wallHatch, x, y, 1, (hatchAlpha << 24) | 0x406090);
     final elemental = b.element != ElementType.neutral;
     final base = elemental ? _border[b.element.index] : 0xFF4D6A9A;
-    batch.add(Spr.wallBorder, x, y, 1, _lerp(_withAlpha(base, 0.4), base, ratio));
+    batch.add(
+        Spr.wallBorder, x, y, 1, _lerp(_withAlpha(base, 0.4), base, ratio));
     batch.add(Spr.wallStripe, x + 5, y + h - 5 - 1.5, 1, 0xFFFF8C00);
     if (elemental) {
       batch.addCentered(Spr.iconSmall + Spr.elementOffset(b.element), x + w - 6,
@@ -231,14 +294,231 @@ class GameRenderer {
     final s = b.status;
     var bx = x + 6;
     if (s.burning) {
-      batch.addCentered(Spr.statusBadge, bx, y + 6, 1, 0xFFFF7A2E);
-      bx += 6;
+      batch.addCentered(Spr.statusBurn, bx, y + 6, 1, 0xFFFF7A2E);
+      bx += 7;
     }
     if (s.acid) {
-      batch.addCentered(Spr.statusBadge, bx, y + 6, 1, 0xFF9BE15D);
-      bx += 6;
+      batch.addCentered(Spr.statusAcid, bx, y + 6, 1, 0xFF9BE15D);
+      bx += 7;
     }
-    if (s.frozen) batch.addCentered(Spr.statusBadge, bx, y + 6, 1, 0xFF8FD8FF);
+    if (s.frozen) {
+      batch.addCentered(Spr.statusFrozen, bx, y + 6, 1, 0xFF8FD8FF);
+      bx += 7;
+    }
+    if (s.softened) {
+      batch.addCentered(Spr.statusSoftened, bx, y + 6, 1, 0xFFEAEAEA);
+      bx += 7;
+    }
+    if (s.stuck) batch.addCentered(Spr.statusStuck, bx, y + 6, 1, 0xFFB08A52);
+  }
+
+  /// Linha de fogo do especial do Fogo: uma frente horizontal que sobe do
+  /// chão ao topo. Núcleo brilhante, chamas tremulando e um rastro de chamas
+  /// que esmaece atrás (abaixo) da frente. Só sprites do atlas, sem alocar.
+  void _fireWave(AtlasBatch batch, BallzFlameGame g) {
+    final y = g.fireWaveY;
+    final t = g.animTime;
+    final w = g.size.x;
+    // Núcleo: faixa clara contínua na frente.
+    for (var x = 0.0; x < w; x += 28) {
+      batch.add(Spr.wallStripe, x, y - 1.5, 1, 0xFFFFF0B0);
+    }
+    var k = 0;
+    for (var x = 7.0; x < w + 7; x += 14, k++) {
+      final flick = sin(t * 18 + k * 1.7);
+      final hot = k.isEven ? 0xFFFF7043 : 0xFFFFC107;
+      // Chama principal (sobe um pouco acima da frente).
+      final s = 1.15 + 0.35 * flick;
+      batch.addCentered(Spr.fireFlame, x, y - 6 * s + 4, s, hot);
+      // Rastro: chamas menores e mais transparentes atrás da frente.
+      final s2 = 0.85 + 0.2 * sin(t * 14 + k);
+      batch.addCentered(Spr.fireFlame, x, y + 12, s2, 0xAAFF5A1F);
+      batch.addCentered(Spr.fireFlame, x + 3, y + 26, s2 * 0.75, 0x66FF3D00);
+    }
+  }
+
+  /// Rajada: luas crescentes girando que cruzam a tela, uma por faixa. Cada
+  /// lâmina tem um rastro de cópias que esmaecem e riscos de vento atrás.
+  /// Só sprites do atlas, sem alocar.
+  void _windBlades(AtlasBatch batch, BallzFlameGame g) {
+    final t = g.animTime;
+    for (var i = 0; i < g.windBladeLanes; i++) {
+      final dir = g.windBladeDir[i];
+      if (dir == 0) continue;
+      final x = g.windBladeX[i], y = g.windBladeY[i];
+      final spin = t * 26 * dir + i;
+      // Rastro: cópias menores e transparentes, defasadas atrás da lâmina.
+      for (var k = 3; k >= 1; k--) {
+        batch.addRotated(Spr.windBlade, x - dir * k * 17, y, 1.9 - k * 0.2,
+            spin - dir * k * 0.9, (0x99 ~/ k << 24) | 0xB7E27A);
+      }
+      // Riscos de vento paralelos ao deslocamento.
+      batch.addCentered(Spr.wallStripe, x - dir * 34, y - 9, 1.1, 0x99E8F7C8);
+      batch.addCentered(Spr.wallStripe, x - dir * 50, y + 10, 0.9, 0x77E8F7C8);
+      // Lâmina principal (gira rápido).
+      batch.addRotated(Spr.windBlade, x, y, 1.9, spin, 0xFFE8FFC0);
+    }
+  }
+
+  /// Descarga: raio do céu até o primeiro alvo e daí de bloco em bloco, em
+  /// zigue-zague que treme (~24×/s). Três camadas: halo roxo, miolo roxo e
+  /// núcleo branco; clarão em cada ponto atingido. Só sprites do atlas.
+  void _lightning(AtlasBatch batch, BallzFlameGame g) {
+    final a = g.boltAlpha;
+    final t = g.animTime;
+    final seed = (t * 24).floor();
+    final halo = _withAlpha(0xFFB388FF, a * 0.45);
+    final body = _withAlpha(0xFFB388FF, a);
+    final core = _withAlpha(0xFFFFFFFF, a);
+    for (var i = 1; i < g.boltCount; i++) {
+      _boltSegment(batch, g.boltX[i - 1], g.boltY[i - 1], g.boltX[i],
+          g.boltY[i], i, seed, i == 1 ? 10 : 7, halo, body, core);
+      // Clarão no ponto atingido: cresce e some em ~0,3 s.
+      final age = t - g.boltBorn[i];
+      if (age < 0.3) {
+        final f = 1 - age / 0.3;
+        batch.addCentered(Spr.ballGlow, g.boltX[i], g.boltY[i], 1.6 + 2.2 * age,
+            _withAlpha(0xFFE9D7FF, f * a));
+      }
+    }
+  }
+
+  /// Um trecho do raio de (x0,y0) a (x1,y1): pedaços de ~14 px com desvio
+  /// lateral pseudoaleatório (determinístico por [seed], sem alocar).
+  void _boltSegment(AtlasBatch batch, double x0, double y0, double x1,
+      double y1, int idx, int seed, double amp, int halo, int body, int core) {
+    final dx = x1 - x0, dy = y1 - y0;
+    final len = sqrt(dx * dx + dy * dy);
+    if (len < 1) return;
+    final n = max(1, (len / 14).ceil());
+    final nx = -dy / len, ny = dx / len; // normal ao trecho
+    var px = x0, py = y0;
+    for (var k = 1; k <= n; k++) {
+      var qx = x0 + dx * k / n, qy = y0 + dy * k / n;
+      if (k < n) {
+        final off = sin(seed * 1.7 + idx * 5.3 + k * 2.9) * amp;
+        qx += nx * off;
+        qy += ny * off;
+      }
+      final sx = qx - px, sy = qy - py;
+      final sl = sqrt(sx * sx + sy * sy);
+      final ang = atan2(sy, sx);
+      final k0 = sl / 28;
+      final mx = (px + qx) / 2, my = (py + qy) / 2;
+      batch.addCentered(Spr.ballGlow, qx, qy, 0.9, halo);
+      batch.addRotated(Spr.boltSeg, mx, my, k0 * 1.8, ang, body);
+      batch.addRotated(Spr.boltSeg, mx, my, k0 * 1.2, ang, core);
+      px = qx;
+      py = qy;
+    }
+  }
+
+  /// Impacto: rocha caindo com rastro e sombra no alvo; ao tocar, onda de
+  /// choque circular com poeira, rachaduras radiais e clarão. Só sprites do
+  /// atlas, sem alocar.
+  void _quake(AtlasBatch batch, BallzFlameGame g) {
+    final t = g.quakeT;
+    final x = g.quakeX, y = g.quakeY;
+    const fall = ElementConfig.earthFall;
+    if (t < fall) {
+      final p = t / fall;
+      // Sombra do alvo, crescendo conforme a rocha se aproxima.
+      batch.addCentered(Spr.ballGlow, x, y, 2.5 + 4.5 * p,
+          _withAlpha(0xFF3E2723, 0.25 + 0.4 * p));
+      const top = BallzFlameGame.topOffset - 40;
+      final ry = top + (y - top) * p * p;
+      // Rastro de poeira subindo atrás da rocha.
+      for (var k = 1; k <= 4; k++) {
+        batch.addCentered(Spr.ball, x + sin(k * 2.0 + t * 30) * 5, ry - k * 15,
+            3.2 - k * 0.5, _withAlpha(0xFFBCAAA4, 0.5 - k * 0.1));
+      }
+      // Rocha: casca escura, corpo claro e crateras que giram.
+      batch.addCentered(Spr.ball, x, ry, 4.8, 0xFF4E342E);
+      batch.addCentered(Spr.ball, x - 1.5, ry - 1.5, 4.0, 0xFF8D6E63);
+      for (var k = 0; k < 3; k++) {
+        final a = t * 14 + k * 2.1;
+        batch.addCentered(
+            Spr.ball, x + cos(a) * 9, ry + sin(a) * 9, 1.1, 0xFF5D4037);
+      }
+      return;
+    }
+    final p = ((t - fall) / ElementConfig.earthShock).clamp(0.0, 1.0);
+    final fade = 1 - p;
+    // Alcance visual = a área que realmente leva dano (3×3 blocos + folga).
+    final reach =
+        (ElementConfig.earthCells / 2 + 0.5) * BlockComponent.blockSize * 1.1;
+    final r = (1 - (1 - p) * (1 - p)) * reach;
+    // Clarão do choque.
+    if (p < 0.35) {
+      batch.addCentered(Spr.ballGlow, x, y, 3 + 9 * p,
+          _withAlpha(0xFFFFE0B2, (1 - p / 0.35) * 0.9));
+    }
+    if (r < 4) return;
+    // Anel de choque (borda) e anel de poeira (atrás).
+    final step = 14 / r;
+    var k = 0;
+    for (var a = 0.0; a < 2 * pi; a += step, k++) {
+      final ca = cos(a), sa = sin(a);
+      batch.addCentered(Spr.ball, x + ca * r, y + sa * r, 1.3 * fade + 0.3,
+          _withAlpha(0xFF8D6E63, fade));
+      if (k.isEven) {
+        batch.addCentered(Spr.ball, x + ca * r * 0.72, y + sa * r * 0.72,
+            1.0 + 0.5 * fade, _withAlpha(0xFFD7CCC8, fade * 0.7));
+      }
+    }
+    // Rachaduras: 8 raios do centro até a borda do anel.
+    for (var j = 0; j < 8; j++) {
+      final a = j * pi / 4 + 0.3;
+      final ca = cos(a), sa = sin(a);
+      for (var d = 0.3; d <= 1.01; d += 0.35) {
+        batch.addRotated(Spr.wallStripe, x + ca * r * d, y + sa * r * d,
+            0.5 + 0.6 * d, a, _withAlpha(0xFF3E2723, fade));
+      }
+    }
+  }
+
+  /// Maré: anel de água que se expande a partir do ponto de lançamento.
+  /// Crista de espuma (segmentos tangentes ao arco) e dois anéis de bolhas que
+  /// esmaecem atrás. Só o semicírculo de cima, e só o que está dentro da tela.
+  void _tideWave(AtlasBatch batch, BallzFlameGame g) {
+    final ox = g.tideOriginX, oy = g.tideOriginY;
+    final r = g.tideRadius;
+    final t = g.animTime;
+    _tideRing(batch, g, ox, oy, r, 22, 0, t); // crista
+    if (r > 18) _tideRing(batch, g, ox, oy, r - 16, 18, 1, t); // corpo
+    if (r > 40) _tideRing(batch, g, ox, oy, r - 36, 26, 2, t); // cauda
+  }
+
+  /// Um anel da Maré (semicírculo de cima de raio [r]), a cada ~[spacing] px,
+  /// só nos pontos visíveis. [kind]: 0 crista, 1 corpo, 2 cauda. Sem closures
+  /// nem listas: nada é alocado por frame.
+  void _tideRing(AtlasBatch batch, BallzFlameGame g, double ox, double oy,
+      double r, double spacing, int kind, double t) {
+    if (r < 4) return;
+    final w = g.size.x;
+    const top = BallzFlameGame.topOffset;
+    final step = spacing / r;
+    var k = 0;
+    for (var a = pi; a <= 2 * pi; a += step, k++) {
+      final ca = cos(a), sa = sin(a);
+      final x = ox + ca * r, y = oy + sa * r;
+      if (x < -12 || x > w + 12 || y < top - 12) continue;
+      switch (kind) {
+        case 0:
+          // Espuma: segmento tangente ao arco + gota brilhante balançando.
+          batch.addRotated(Spr.wallStripe, x, y, 1.15, a + pi / 2, 0xFFE3F6FF);
+          if (k % 3 == 0) {
+            batch.addCentered(Spr.ball, x + ca * 3, y + sa * 3 - 2,
+                0.55 + 0.25 * sin(t * 12 + k), 0xFFFFFFFF);
+          }
+        case 1:
+          batch.addCentered(
+              Spr.ball, x, y, 0.8 + 0.2 * sin(t * 9 + k * 1.3), 0xCC4FC3F7);
+        default:
+          batch.addCentered(
+              Spr.ball, x, y, 0.55 + 0.15 * sin(t * 7 + k), 0x661E88E5);
+      }
+    }
   }
 
   /// Número centrado em ([cx], [cy]) com a bitmap font do atlas.
@@ -314,7 +594,7 @@ class GameRenderer {
       sx = x;
       sy = y;
     }
-    _aimPaint.color = _aimColors[g.gameState.ballElement.index];
+    _aimPaint.color = _aimColors[ElementType.neutral.index];
     canvas.drawPath(path, _aimPaint);
   }
 
@@ -384,7 +664,8 @@ class GameRenderer {
       _bcol[m++] = _ball[g.lastLandedElement];
     }
     if (g.phase == GamePhase.aim) {
-      final el = g.gameState.ballElement.index;
+      // Na mira a bola é sempre neutra: elemento só se absorve em voo.
+      const el = 0;
       _bx[m] = g.originX;
       _by[m] = g.floorY;
       _bel[m] = el;
@@ -409,6 +690,30 @@ class GameRenderer {
       final angle = g.animTime * 4;
       for (var i = 0; i < m; i++) {
         batch.addRotated(Spr.prismRing, _bx[i], _by[i], 1, angle);
+      }
+    }
+
+    if (g.fireWaveY >= 0) _fireWave(batch, g);
+    if (g.tideRadius > 0) _tideWave(batch, g);
+    if (g.windElapsed >= 0) _windBlades(batch, g);
+    if (g.quakeT >= 0) _quake(batch, g);
+    if (g.boltClock >= 0) _lightning(batch, g);
+
+    // Portais (par girando), buraco negro e muralha.
+    if (g.portalTurns > 0) {
+      final ang = g.animTime * 3;
+      batch.addRotated(
+          Spr.prismRing, g.portalAx, g.portalAy, 1.9, ang, 0xFF9BD1FF);
+      batch.addRotated(
+          Spr.prismRing, g.portalBx, g.portalBy, 1.9, -ang, 0xFFFFB46B);
+    }
+    if (g.blackholeActive) {
+      batch.addCentered(Spr.ballGlow, g.bhX, g.bhY, 2.2, 0x885B2BA8);
+      batch.addCentered(Spr.ball, g.bhX, g.bhY, 1.6, 0xFF14081f);
+    }
+    if (g.wallCharges > 0) {
+      for (var x = 2.0; x < g.size.x - 2; x += 30) {
+        batch.add(Spr.wallStripe, x, g.floorY - 6, 1, 0xFF9BD1FF);
       }
     }
 

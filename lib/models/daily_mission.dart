@@ -13,7 +13,8 @@ enum MissionType {
   /// Bolas extras coletadas nos blocos de bônus.
   collectBalls,
 
-  /// Acertos com vantagem elemental.
+  /// Acertos com vantagem elemental. Legado: o triângulo de vantagem saiu do
+  /// jogo e este tipo não é mais sorteado (a ordem do enum é salva em disco).
   advantageHits,
 
   /// Acertos críticos. Só sorteada com o upgrade de Crítico.
@@ -21,6 +22,29 @@ enum MissionType {
 
   /// Rodadas jogadas (cada lançamento).
   playRounds,
+
+  // ── Novos (sistema de elementos): só acrescentar no fim, a ordem é salva ──
+
+  /// Usos do poder especial (botão do especial). Só sorteada com algum
+  /// especial comprado.
+  useSpecials,
+
+  /// Combinações elementais disparadas (bola com elemento × bloco elemental).
+  triggerCombos,
+
+  /// Blocos elementais atravessados absorvendo o elemento (bola neutra).
+  absorbElements,
+
+  /// Power-ups coletados no tabuleiro.
+  collectPowerUps,
+
+  /// Blocos que receberam status por combinação ou especial (chamas, gelo,
+  /// ácido, vapor, lama).
+  statusBlocks,
+
+  /// Combinações novas descobertas no Codex. Só sorteada se ainda faltarem
+  /// combinações para descobrir.
+  discoverCombos,
 }
 
 enum MissionDifficulty { easy, medium, hard }

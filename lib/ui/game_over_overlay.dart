@@ -9,11 +9,17 @@ class GameOverOverlay extends StatelessWidget {
   final VoidCallback? onWatchAd; // null quando o ad não está disponível
   final VoidCallback onOpenShop;
 
+  /// Rewarded "dobrar moedas da partida"; null quando indisponível/já usado.
+  final VoidCallback? onDoubleGold;
+  final int doubleGoldAmount;
+
   const GameOverOverlay({
     super.key,
     required this.onRestart,
     required this.onOpenShop,
     this.onWatchAd,
+    this.onDoubleGold,
+    this.doubleGoldAmount = 0,
   });
 
   @override
@@ -63,6 +69,26 @@ class GameOverOverlay extends StatelessWidget {
                         fontFamily: 'monospace', fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1D9E75),
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+
+            // Rewarded: dobra as moedas ganhas na partida inteira.
+            if (onDoubleGold != null) ...[
+              ElevatedButton.icon(
+                onPressed: onDoubleGold,
+                icon: const Text('⬤', style: TextStyle(fontSize: 12)),
+                label: Text(l.doubleGoldAd(doubleGoldAmount),
+                    style: const TextStyle(
+                        fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFBA7517),
                   foregroundColor: Colors.white,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 24, vertical: 14),

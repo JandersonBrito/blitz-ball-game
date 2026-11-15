@@ -1,10 +1,10 @@
 import 'dart:convert';
-import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/ball_skin.dart';
 import '../../models/element.dart';
 import '../../models/upgrade.dart';
+import '../config/element_config.dart';
 import '../../services/daily_mission_service.dart';
 import '../perf/perf_config.dart';
 
@@ -35,8 +35,34 @@ class GameState extends ChangeNotifier {
   /// fonte da verdade é a compra.
   bool starterBallsActive = false;
   BallSkin ballSkin = BallSkin.classic;
-  ElementType ballElement = ElementType.neutral;
   Map<String, int> upgrades = {for (var u in upgradeDefs) u.id: 0};
+
+  /// Nível do especial de cada elemento (0 = não comprado).
+  Map<ElementType, int> specialLevels = {
+    for (final e in kCombatElements) e: 0
+  };
+
+  /// Codex: bit n = combinação n já descoberta (25 bits).
+  int discoveredCombos = 0;
+
+  /// Id da combinação recém-descoberta, para o toast; limpo pela UI.
+  String? comboToastId;
+
+  /// Ouro ganho jogando na partida inteira (para o "dobrar moedas" do fim).
+  int runGoldEarned = 0;
+
+  /// Rewarded "especial imediato": uma vez por partida.
+  bool specialAdUsed = false;
+
+  /// Rewarded "dobrar moedas": uma vez por game over.
+  bool runGoldDoubled = false;
+
+  /// Medidor do especial (0..1) e elemento armado (modo meter).
+  double specialMeter = 0;
+  ElementType armedElement = ElementType.neutral;
+
+  /// Turnos restantes de cooldown da Maré (especial de água).
+  int tideCooldown = 0;
 
   static const _kScore = 'gs_score';
   static const _kGold = 'gs_gold';
@@ -48,8 +74,14 @@ class GameState extends ChangeNotifier {
   static const _kWavesInStage = 'gs_waves_in_stage';
   static const _kGameOver = 'gs_game_over';
   static const _kStageComplete = 'gs_stage_complete';
-  static const _kBallElement = 'gs_ball_element';
   static const _kTotalRounds = 'gs_total_rounds';
+  static const _kCodex = 'gs_codex';
+  static const _kRunGold = 'gs_run_gold';
+  static const _kSpecialAdUsed = 'gs_sp_ad_used';
+  static const _kRunGoldDoubled = 'gs_run_doubled';
+  static const _kMeter = 'gs_sp_meter';
+  static const _kArmed = 'gs_sp_armed';
+  static const _kTideCd = 'gs_tide_cd';
   static const _kFreeContinueUsed = 'gs_free_continue_used';
   static const _kGamesPlayed = 'gs_games_played';
   static const _kStarterOfferSeen = 'gs_starter_offer_seen';
@@ -74,11 +106,37 @@ class GameState extends ChangeNotifier {
     gs.starterOfferSeen = prefs.getBool(_kStarterOfferSeen) ?? false;
     final skinIdx = prefs.getInt(_kBallSkin) ?? 0;
     gs.ballSkin = BallSkin.values[skinIdx.clamp(0, BallSkin.values.length - 1)];
-    final elIdx = prefs.getInt(_kBallElement) ?? 0;
-    gs.ballElement = ElementType.values[elIdx.clamp(0, ElementType.values.length - 1)];
     for (final u in upgradeDefs) {
       gs.upgrades[u.id] = prefs.getInt('gs_upg_${u.id}') ?? 0;
     }
+    for (final e in kCombatElements) {
+      gs.specialLevels[e] = prefs.getInt('gs_spec_${e.name}') ?? 0;
+    }
+    // Conversão dos upgrades elementais antigos (Fogo+/Água+/Vento+): o nível
+    // comprado vira nível do especial do mesmo elemento, uma única vez.
+    const legacy = {
+      'upg_fire': ElementType.fire,
+      'upg_water': ElementType.water,
+      'upg_wind': ElementType.wind,
+    };
+    for (final entry in legacy.entries) {
+      final key = 'gs_upg_${entry.key}';
+      final lvl = prefs.getInt(key) ?? 0;
+      if (lvl > 0) {
+        final cur = gs.specialLevels[entry.value] ?? 0;
+        if (lvl > cur) gs.specialLevels[entry.value] = lvl;
+      }
+      if (prefs.containsKey(key)) await prefs.remove(key);
+    }
+    gs.discoveredCombos = prefs.getInt(_kCodex) ?? 0;
+    gs.runGoldEarned = prefs.getInt(_kRunGold) ?? 0;
+    gs.specialAdUsed = prefs.getBool(_kSpecialAdUsed) ?? false;
+    gs.runGoldDoubled = prefs.getBool(_kRunGoldDoubled) ?? false;
+    gs.specialMeter = (prefs.getDouble(_kMeter) ?? 0).clamp(0.0, 1.0);
+    final armedIdx = prefs.getInt(_kArmed) ?? 0;
+    gs.armedElement =
+        ElementType.values[armedIdx.clamp(0, ElementType.values.length - 1)];
+    gs.tideCooldown = prefs.getInt(_kTideCd) ?? 0;
     return gs;
   }
 
@@ -105,14 +163,25 @@ class GameState extends ChangeNotifier {
     putInt(_kWavesInStage, wavesInStage);
     putBool(_kGameOver, gameOver);
     putBool(_kStageComplete, stageComplete);
-    putInt(_kBallElement, ballElement.index);
     putInt(_kTotalRounds, totalRoundsPlayed);
     putBool(_kFreeContinueUsed, freeContinueUsed);
     putInt(_kGamesPlayed, gamesPlayed);
     putBool(_kStarterOfferSeen, starterOfferSeen);
     putInt(_kBallSkin, ballSkin.index);
+    putInt(_kCodex, discoveredCombos);
+    putInt(_kRunGold, runGoldEarned);
+    putBool(_kSpecialAdUsed, specialAdUsed);
+    putBool(_kRunGoldDoubled, runGoldDoubled);
+    putInt(_kArmed, armedElement.index);
+    putInt(_kTideCd, tideCooldown);
+    if ((prefs.getDouble(_kMeter) ?? 0) != specialMeter) {
+      writes.add(prefs.setDouble(_kMeter, specialMeter));
+    }
     for (final entry in upgrades.entries) {
       putInt('gs_upg_${entry.key}', entry.value);
+    }
+    for (final entry in specialLevels.entries) {
+      putInt('gs_spec_${entry.key.name}', entry.value);
     }
     await Future.wait(writes);
   }
@@ -271,25 +340,6 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
-  double calcElemMult(ElementType atk, ElementType def) {
-    double m = getElementMult(atk, def);
-    // wind bypass: só ignora a desvantagem, nunca remove a vantagem
-    final windLvl = upgrades['upg_wind'] ?? 0;
-    if (atk == ElementType.wind && m < 1 && windLvl > 0) {
-      final bypass = upgradeDefs.firstWhere((u) => u.id == 'upg_wind').levels[windLvl - 1].value;
-      if (Random().nextDouble() < bypass) return 1.0;
-    }
-    final fireLvl = upgrades['upg_fire'] ?? 0;
-    if (atk == ElementType.fire && m > 1 && fireLvl > 0) {
-      m = upgradeDefs.firstWhere((u) => u.id == 'upg_fire').levels[fireLvl - 1].value;
-    }
-    final waterLvl = upgrades['upg_water'] ?? 0;
-    if (atk == ElementType.water && m < 1 && waterLvl > 0) {
-      m = upgradeDefs.firstWhere((u) => u.id == 'upg_water').levels[waterLvl - 1].value;
-    }
-    return m;
-  }
-
   bool buyUpgrade(String id) {
     final def = upgradeDefs.firstWhere((u) => u.id == id, orElse: () => throw Exception('Unknown upgrade $id'));
     final lvl = upgrades[id] ?? 0;
@@ -301,6 +351,98 @@ class GameState extends ChangeNotifier {
     notifyListeners();
     return true;
   }
+
+  // ── Especiais de elemento ────────────────────────────────────────────────
+
+  int specialLevel(ElementType e) => specialLevels[e] ?? 0;
+
+  /// Algum especial de elemento já foi comprado?
+  bool get ownsAnySpecial {
+    for (var k = 0; k < kCombatElements.length; k++) {
+      if ((specialLevels[kCombatElements[k]] ?? 0) > 0) return true;
+    }
+    return false;
+  }
+
+  /// Quantas das 25 combinações já foram descobertas no Codex.
+  int get discoveredComboCount {
+    var n = 0;
+    for (var v = discoveredCombos; v != 0; v &= v - 1) {
+      n++;
+    }
+    return n;
+  }
+
+  bool buySpecial(ElementType e) {
+    final lvl = specialLevel(e);
+    if (lvl >= ElementConfig.specialMaxLevel) return false;
+    final cost = ElementConfig.specialCost(lvl + 1);
+    if (gold < cost) return false;
+    gold -= cost;
+    specialLevels[e] = lvl + 1;
+    notifyListeners();
+    return true;
+  }
+
+  /// Conta [hits] acertos no medidor (modo meter): [ElementConfig.hitsToFillMeter]
+  /// acertos enchem. Só carrega se algum especial foi comprado. Caminho da
+  /// jogada: sem notify imediato (o HUD atualiza no commitGameplay).
+  void addSpecialHits(int hits) {
+    if (hits <= 0 || specialMeter >= 1) return;
+    // Laço indexado: este método roda a cada acerto, sem alocar iterador.
+    var owned = false;
+    for (var k = 0; k < kCombatElements.length; k++) {
+      if ((specialLevels[kCombatElements[k]] ?? 0) > 0) {
+        owned = true;
+        break;
+      }
+    }
+    if (!owned) return;
+    specialMeter =
+        (specialMeter + hits / ElementConfig.hitsToFillMeter).clamp(0.0, 1.0);
+    _gameplayChanged();
+  }
+
+  /// O jogador escolhe qual poder o botão do especial usa. Só vale para
+  /// especiais já comprados. Vem da UI: avisa e grava na hora.
+  void selectSpecial(ElementType el) {
+    if (specialLevel(el) <= 0 || armedElement == el) return;
+    armedElement = el;
+    notifyListeners();
+  }
+
+  void consumeSpecialMeter() {
+    specialMeter = 0;
+    _gameplayChanged();
+  }
+
+  // ── Codex de combinações ─────────────────────────────────────────────────
+
+  bool comboDiscovered(int index) => discoveredCombos & (1 << index) != 0;
+
+  /// Marca a combinação como descoberta; true se é a primeira vez.
+  bool discoverCombo(int index, String id) {
+    final bit = 1 << index;
+    if (discoveredCombos & bit != 0) return false;
+    discoveredCombos |= bit;
+    comboToastId = id;
+    _gameplayChanged();
+    return true;
+  }
+
+  void clearComboToast() => comboToastId = null;
+
+  /// Aviso curto durante a partida: 'pu:<índice do PowerUpKind>' ao coletar um
+  /// power-up, 'sp:<índice do ElementType>' ao disparar um especial. A tela
+  /// lê e limpa ([clearAnnounce]).
+  String? announceKey;
+
+  void announce(String key) {
+    announceKey = key;
+    _uiDirty = true; // só a UI; nada para gravar
+  }
+
+  void clearAnnounce() => announceKey = null;
 
   bool get speedUnlocked => (upgrades['speed'] ?? 0) > 0;
   bool fastForward = false;
@@ -319,6 +461,7 @@ class GameState extends ChangeNotifier {
     final amount = base * multiplier;
     gold += amount;
     stageGoldEarned += amount;
+    runGoldEarned += amount;
     _gameplayChanged();
   }
 
@@ -431,7 +574,12 @@ class GameState extends ChangeNotifier {
     stageComplete = false;
     freeContinueUsed = false;
     stageGoldEarned = 0;
-    ballElement = ElementType.neutral;
+    runGoldEarned = 0;
+    specialAdUsed = false;
+    runGoldDoubled = false;
+    specialMeter = 0;
+    armedElement = ElementType.neutral;
+    tideCooldown = 0;
     ballCount = initialBalls;
     // mantém: gold, upgrades, level, stage, wave, waveInStage, wavesInStage
     notifyListeners();
@@ -448,9 +596,12 @@ class GameState extends ChangeNotifier {
       'stage': stage,
       'waveInStage': waveInStage,
       'wavesInStage': wavesInStage,
-      'ballElement': ballElement.index,
       'totalRoundsPlayed': totalRoundsPlayed,
       'upgrades': {for (final e in upgrades.entries) e.key: e.value},
+      'specials': {
+        for (final e in specialLevels.entries) e.key.name: e.value
+      },
+      'codex': discoveredCombos,
       // Missões com o dia: restaurar no mesmo dia não libera resgatar de novo.
       'missions': DailyMissionService.instance.exportState(),
     };
@@ -470,14 +621,23 @@ class GameState extends ChangeNotifier {
       waveInStage   = json['waveInStage']    as int? ?? waveInStage;
       wavesInStage  = json['wavesInStage']   as int? ?? wavesInStage;
       totalRoundsPlayed = json['totalRoundsPlayed'] as int? ?? totalRoundsPlayed;
-      final elIdx = json['ballElement'] as int? ?? 0;
-      ballElement = ElementType.values[elIdx.clamp(0, ElementType.values.length - 1)];
       final upgs = json['upgrades'] as Map<String, dynamic>?;
       if (upgs != null) {
         for (final e in upgs.entries) {
           if (upgrades.containsKey(e.key)) upgrades[e.key] = e.value as int;
         }
       }
+      final specs = json['specials'] as Map<String, dynamic>?;
+      if (specs != null) {
+        for (final el in kCombatElements) {
+          final lvl = specs[el.name] as int?;
+          if (lvl != null) {
+            specialLevels[el] =
+                lvl.clamp(0, ElementConfig.specialMaxLevel);
+          }
+        }
+      }
+      discoveredCombos = json['codex'] as int? ?? discoveredCombos;
       DailyMissionService.instance
           .applyBackup(json['missions'] as Map<String, dynamic>?);
       notifyListeners();
@@ -500,8 +660,15 @@ class GameState extends ChangeNotifier {
     stageComplete = false;
     helpOfferDismissed = false;
     freeContinueUsed = false;
-    ballElement = ElementType.neutral;
     upgrades = {for (var u in upgradeDefs) u.id: 0};
+    specialLevels = {for (final e in kCombatElements) e: 0};
+    discoveredCombos = 0;
+    runGoldEarned = 0;
+    specialAdUsed = false;
+    runGoldDoubled = false;
+    specialMeter = 0;
+    armedElement = ElementType.neutral;
+    tideCooldown = 0;
     notifyListeners();
   }
 }

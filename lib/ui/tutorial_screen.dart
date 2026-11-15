@@ -191,10 +191,24 @@ class _TutorialScreenState extends State<TutorialScreen> {
         ),
         _TutorialSlide(
           borderColor: const Color(0xFFE05C5C),
-          icon: '🔥',
+          icon: '🌀',
           title: l.tutSlide3Title,
           subtitle: l.tutSlide3Sub,
           rawItems: l.tutSlide3Items,
+        ),
+        _TutorialSlide(
+          borderColor: const Color(0xFF8FD8FF),
+          icon: '❄',
+          title: l.tutSlideStatusTitle,
+          subtitle: l.tutSlideStatusSub,
+          rawItems: l.tutSlideStatusItems,
+        ),
+        _TutorialSlide(
+          borderColor: const Color(0xFF9B6BD9),
+          icon: '⚡',
+          title: l.tutSlideSpecialsTitle,
+          subtitle: l.tutSlideSpecialsSub,
+          rawItems: l.tutSlideSpecialsItems,
         ),
         _TutorialSlide(
           borderColor: const Color(0xFFE24B4A),
