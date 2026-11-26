@@ -1,6 +1,6 @@
 # Notas da versão (Play Console > "O que há de novo", máx. 500 caracteres por idioma)
 
-## 1.1.0 (versionCode 15) — versão atual
+## 1.1.0 (versionCode 16) — versão atual
 
 <pt-BR>
 🏰 Nova fase Fortaleza!
